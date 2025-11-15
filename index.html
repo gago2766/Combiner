@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دمج الصور - أداة متقدمة</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #f5f7fa;
+            --bg-secondary: #ffffff;
+            --bg-hover: #f0f2f5;
+            --text-primary: #1a202c;
+            --text-secondary: #4a5568;
+            --border-color: #e2e8f0;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-color: #334155;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            transition: background 0.3s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .theme-toggle {
+            background: var(--bg-hover);
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent-color);
+            transform: scale(1.05);
+        }
+
+        .theme-toggle svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--text-primary);
+        }
+
+        .upload-area {
+            border: 3px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 2rem;
+        }
+
+        .upload-area:hover,
+        .upload-area.drag-over {
+            border-color: var(--accent-color);
+            background: var(--bg-hover);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            fill: var(--accent-color);
+        }
+
+        .upload-text {
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .setting-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.938rem;
+            color: var(--text-secondary);
+        }
+
+        .setting-value {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--bg-hover);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+            transform: scale(1.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            border: none;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-hover);
+            transition: 0.4s;
+            border-radius: 28px;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .switch-slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .switch-slider:before {
+            transform: translateX(24px);
+        }
+
+        .process-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: white;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 1.5rem;
+        }
+
+        .process-btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .process-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            display: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 24px;
+            background: var(--bg-hover);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+            border-radius: 12px;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert.show {
+            display: flex;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .alert svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .stats-grid {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stats-grid.show {
+            display: grid;
+        }
+
+        .stat-card {
+            background: var(--bg-hover);
+            padding: 1.25rem;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .processing-animation {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .processing-animation.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--bg-hover);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🖼️ دمج الصور المتقدم</h1>
+            <button class="theme-toggle" id="themeToggle" title="تبديل الوضع الليلي">
+                <svg class="sun-icon" viewBox="0 0 24 24">
+                    <path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Upload Area -->
+        <div class="upload-area" id="uploadArea">
+            <svg class="upload-icon" viewBox="0 0 24 24">
+                <path d="M14 13V17H10V13H7L12 8L17 13H14ZM12 2C17.52 2 22 6.48 22 12C22 17.52 17.52 22 12 22C6.48 22 2 17.52 2 12C2 6.48 6.48 2 12 2ZM12 20C16.42 20 20 16.42 20 12C20 7.58 16.42 4 12 4C7.58 4 4 7.58 4 12C4 16.42 7.58 20 12 20Z"/>
+            </svg>
+            <div class="upload-text">اسحب وأفلت ملف ZIP هنا</div>
+            <div class="upload-hint">أو انقر لاختيار الملف</div>
+            <input type="file" id="fileInput" accept=".zip">
+        </div>
+
+        <!-- Alerts -->
+        <div class="alert alert-success" id="successAlert">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            <span id="successMessage"></span>
+        </div>
+
+        <div class="alert alert-error" id="errorAlert">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+            <span id="errorMessage"></span>
+        </div>
+
+        <div class="alert alert-warning" id="warningAlert">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            </svg>
+            <span id="warningMessage"></span>
+        </div>
+
+        <!-- Settings -->
+        <div class="settings-section">
+            <h2 class="section-title">⚙️ الإعدادات</h2>
+
+            <div class="setting-item">
+                <div class="setting-label">
+                    <span>العرض الموحد</span>
+                    <span class="setting-value"><span id="widthValue">720</span> بكسل</span>
+                </div>
+                <input type="range" class="slider" id="widthSlider" min="720" max="800" value="720">
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-label">
+                    <span>الطول الأقصى</span>
+                    <span class="setting-value"><span id="maxHeightValue">15000</span> بكسل</span>
+                </div>
+                <input type="range" class="slider" id="maxHeightSlider" min="1000" max="30000" value="15000" step="1000">
+            </div>
+
+            <div class="setting-item">
+                <div class="setting-label">
+                    <span>جودة الصورة</span>
+                    <span class="setting-value"><span id="qualityValue">85</span>%</span>
+                </div>
+                <input type="range" class="slider" id="qualitySlider" min="10" max="100" value="85">
+            </div>
+
+            <div class="setting-item">
+                <div class="toggle-switch">
+                    <label class="switch">
+                        <input type="checkbox" id="autoSplitToggle" checked>
+                        <span class="switch-slider"></span>
+                    </label>
+                    <span>التقطيع التلقائي عند تجاوز الطول الأقصى</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Process Button -->
+        <button class="process-btn" id="processBtn" disabled>ابدأ المعالجة</button>
+
+        <!-- Processing Animation -->
+        <div class="processing-animation" id="processingAnimation">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-info">
+                <span id="progressText">جاري المعالجة...</span>
+                <span id="etaText"></span>
+            </div>
+            <div class="progress-bar-wrapper">
+                <div class="progress-bar" id="progressBar">0%</div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-value" id="statOriginalCount">0</div>
+                <div class="stat-label">الصور الأصلية</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statOutputCount">0</div>
+                <div class="stat-label">الصور الناتجة</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statOriginalSize">0 MB</div>
+                <div class="stat-label">الحجم الأصلي</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statProcessTime">0 ث</div>
+                <div class="stat-label">وقت المعالجة</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statDimensions">0x0</div>
+                <div class="stat-label">الأبعاد النهائية</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme Management
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+        
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        htmlElement.setAttribute('data-theme', savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            htmlElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+
+        // Settings
+        const widthSlider = document.getElementById('widthSlider');
+        const widthValue = document.getElementById('widthValue');
+        const maxHeightSlider = document.getElementById('maxHeightSlider');
+        const maxHeightValue = document.getElementById('maxHeightValue');
+        const qualitySlider = document.getElementById('qualitySlider');
+        const qualityValue = document.getElementById('qualityValue');
+        const autoSplitToggle = document.getElementById('autoSplitToggle');
+
+        widthSlider.addEventListener('input', (e) => {
+            widthValue.textContent = e.target.value;
+        });
+
+        maxHeightSlider.addEventListener('input', (e) => {
+            maxHeightValue.textContent = e.target.value;
+        });
+
+        qualitySlider.addEventListener('input', (e) => {
+            qualityValue.textContent = e.target.value;
+        });
+
+        // Upload Area
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const processBtn = document.getElementById('processBtn');
+        let selectedFile = null;
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].name.endsWith('.zip')) {
+                handleFileSelect(files[0]);
+            } else {
+                showAlert('error', 'الرجاء اختيار ملف ZIP صالح');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            selectedFile = file;
+            processBtn.disabled = false;
+            showAlert('success', `تم اختيار الملف: ${file.name}`);
+        }
+
+        // Alert System
+        function showAlert(type, message) {
+            const alerts = ['successAlert', 'errorAlert', 'warningAlert'];
+            alerts.forEach(id => {
+                document.getElementById(id).classList.remove('show');
+            });
+
+            const alertMap = {
+                'success': 'successAlert',
+                'error': 'errorAlert',
+                'warning': 'warningAlert'
+            };
+
+            const alertId = alertMap[type];
+            const messageId = type + 'Message';
+            
+            document.getElementById(messageId).textContent = message;
+            document.getElementById(alertId).classList.add('show');
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    document.getElementById(alertId).classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        // Natural Sort
+        function naturalSort(a, b) {
+            const ax = [];
+            const bx = [];
+
+            a.replace(/(\d+)|(\D+)/g, (_, $1, $2) => {
+                ax.push([$1 || Infinity, $2 || ""]);
+            });
+            b.replace(/(\d+)|(\D+)/g, (_, $1, $2) => {
+                bx.push([$1 || Infinity, $2 || ""]);
+            });
+
+            while (ax.length && bx.length) {
+                const an = ax.shift();
+                const bn = bx.shift();
+                const nn = (an[0] - bn[0]) || an[1].localeCompare(bn[1]);
+                if (nn) return nn;
+            }
+
+            return ax.length - bx.length;
+        }
+
+        // Progress Management
+        function updateProgress(percent, text, eta = '') {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const etaText = document.getElementById('etaText');
+
+            progressContainer.classList.add('active');
+            progressBar.style.width = percent + '%';
+            progressBar.textContent = Math.round(percent) + '%';
+            progressText.textContent = text;
+            etaText.textContent = eta;
+        }
+
+        function hideProgress() {
+            document.getElementById('progressContainer').classList.remove('active');
+        }
+
+        // Statistics
+        function showStats(stats) {
+            document.getElementById('statOriginalCount').textContent = stats.originalCount;
+            document.getElementById('statOutputCount').textContent = stats.outputCount;
+            document.getElementById('statOriginalSize').textContent = stats.originalSize;
+            document.getElementById('statProcessTime').textContent = stats.processTime;
+            document.getElementById('statDimensions').textContent = stats.dimensions;
+            document.getElementById('statsGrid').classList.add('show');
+        }
+
+        // Format file size
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 MB';
+            const mb = bytes / (1024 * 1024);
+            return mb.toFixed(2) + ' MB';
+        }
+
+        // Main Processing
+        processBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const startTime = Date.now();
+            processBtn.disabled = true;
+            document.getElementById('processingAnimation').classList.add('active');
+            document.getElementById('statsGrid').classList.remove('show');
+
+            try {
+                const targetWidth = parseInt(widthSlider.value);
+                const maxHeight = parseInt(maxHeightSlider.value);
+                const quality = parseInt(qualitySlider.value) / 100;
+                const autoSplit = autoSplitToggle.checked;
+
+                updateProgress(10, 'جاري استخراج الملفات...');
+
+                const zip = await JSZip.loadAsync(selectedFile);
+                const imageFiles = [];
+
+                for (const [filename, file] of Object.entries(zip.files)) {
+                    if (!file.dir) {
+                        const ext = filename.split('.').pop().toLowerCase();
+                        if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                            imageFiles.push({ filename, file });
+                        }
+                    }
+                }
+
+                if (imageFiles.length === 0) {
+                    throw new Error('لم يتم العثور على صور في الملف');
+                }
+
+                updateProgress(20, 'جاري ترتيب الصور...');
+                imageFiles.sort((a, b) => naturalSort(a.filename, b.filename));
+
+                updateProgress(30, 'جاري تحميل الصور...');
+
+                const images = [];
+                for (let i = 0; i < imageFiles.length; i++) {
+                    const blob = await imageFiles[i].file.async('blob');
+                    const img = await createImageBitmap(blob);
+                    images.push(img);
+                    
+                    const progress = 30 + (i / imageFiles.length) * 20;
+                    updateProgress(progress, `جاري تحميل الصور... (${i + 1}/${imageFiles.length})`);
+                }
+
+                updateProgress(50, 'جاري معالجة ودمج الصور...');
+
+                const mergedImages = await mergeImages(images, targetWidth, maxHeight, autoSplit);
+
+                updateProgress(80, 'جاري إنشاء ملف ZIP...');
+
+                const outputZip = new JSZip();
+                const totalImages = mergedImages.length;
+
+                for (let i = 0; i < mergedImages.length; i++) {
+                    const canvas = mergedImages[i];
+                    const blob = await new Promise(resolve => {
+                        canvas.toBlob(resolve, 'image/jpeg', quality);
+                    });
+
+                    const paddedNum = String(i + 1).padStart(3, '0');
+                    outputZip.file(`${paddedNum}.jpg`, blob);
+
+                    const progress = 80 + (i / totalImages) * 15;
+                    updateProgress(progress, `جاري حفظ الصور... (${i + 1}/${totalImages})`);
+                }
+
+                updateProgress(95, 'جاري إنشاء الملف النهائي...');
+
+                const zipBlob = await outputZip.generateAsync({
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+
+                updateProgress(100, 'اكتمل!');
+
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'merged_images.zip';
+                a.click();
+                URL.revokeObjectURL(url);
+
+                const endTime = Date.now();
+                const processTime = ((endTime - startTime) / 1000).toFixed(2);
+                const lastCanvas = mergedImages[mergedImages.length - 1];
+
+                showStats({
+                    originalCount: images.length,
+                    outputCount: mergedImages.length,
+                    originalSize: formatBytes(selectedFile.size),
+                    processTime: processTime + ' ث',
+                    dimensions: `${lastCanvas.width}x${lastCanvas.height}`
+                });
+
+                showAlert('success', 'تمت المعالجة بنجاح! جاري تنزيل الملف...');
+
+            } catch (error) {
+                console.error(error);
+                showAlert('error', 'حدث خطأ: ' + error.message);
+            } finally {
+                processBtn.disabled = false;
+                document.getElementById('processingAnimation').classList.remove('active');
+                hideProgress();
+            }
+        });
+
+        // Merge Images Function with Batch Processing
+        async function mergeImages(images, targetWidth, maxHeight, autoSplit) {
+            const results = [];
+            let currentCanvas = document.createElement('canvas');
+            let currentCtx = currentCanvas.getContext('2d', { willReadFrequently: false });
+            let currentHeight = 0;
+
+            currentCanvas.width = targetWidth;
+
+            for (let i = 0; i < images.length; i++) {
+                const img = images[i];
+                
+                const scale = targetWidth / img.width;
+                const scaledHeight = Math.round(img.height * scale);
+
+                if (autoSplit && currentHeight + scaledHeight > maxHeight && currentHeight > 0) {
+                    const finalCanvas = document.createElement('canvas');
+                    finalCanvas.width = targetWidth;
+                    finalCanvas.height = currentHeight;
+                    const finalCtx = finalCanvas.getContext('2d');
+                    finalCtx.drawImage(currentCanvas, 0, 0);
+                    results.push(finalCanvas);
+
+                    currentCanvas = document.createElement('canvas');
+                    currentCtx = currentCanvas.getContext('2d', { willReadFrequently: false });
+                    currentCanvas.width = targetWidth;
+                    currentHeight = 0;
+                }
+
+                if (currentHeight + scaledHeight > currentCanvas.height) {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = targetWidth;
+                    tempCanvas.height = currentHeight + scaledHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    if (currentHeight > 0) {
+                        tempCtx.drawImage(currentCanvas, 0, 0);
+                    }
+                    
+                    currentCanvas = tempCanvas;
+                    currentCtx = tempCtx;
+                }
+
+                currentCtx.drawImage(img, 0, currentHeight, targetWidth, scaledHeight);
+                currentHeight += scaledHeight;
+
+                const progress = 50 + (i / images.length) * 30;
+                const eta = estimateETA(i, images.length, Date.now());
+                updateProgress(progress, `جاري دمج الصور... (${i + 1}/${images.length})`, eta);
+
+                // Allow browser to breathe every 10 images
+                if (i % 10 === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+            }
+
+            if (currentHeight > 0) {
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = targetWidth;
+                finalCanvas.height = currentHeight;
+                const finalCtx = finalCanvas.getContext('2d');
+                finalCtx.drawImage(currentCanvas, 0, 0);
+                results.push(finalCanvas);
+            }
+
+            return results;
+        }
+
+        // ETA Calculation
+        let etaStartTime = null;
+        function estimateETA(current, total, currentTime) {
+            if (current === 0) {
+                etaStartTime = currentTime;
+                return '';
+            }
+
+            const elapsed = currentTime - etaStartTime;
+            const rate = current / elapsed;
+            const remaining = total - current;
+            const eta = remaining / rate;
+
+            const seconds = Math.round(eta / 1000);
+            if (seconds < 60) {
+                return `الوقت المتبقي: ${seconds} ثانية`;
+            } else {
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `الوقت المتبقي: ${minutes} دقيقة و ${secs} ثانية`;
+            }
+        }
+    </script>
+</body>
+</html>
