@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أداة دمج الصور المتقدمة</title>
+    <title>أداة دمج المانجا والويبتون</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         /* CSS styles */
@@ -107,7 +107,7 @@
 
     <div class="container">
         <header>
-            <h1>أداة دمج المانجا والويبتون (سريعة)</h1>
+            <h1>أداة دمج المانجا والويبتون</h1>
             <button class="dark-mode-toggle" id="darkModeToggle" aria-label="Toggle Dark Mode">
                 <svg class="icon" id="moon-icon"><use href="#icon-moon"></use></svg>
                 <svg class="icon" id="sun-icon"><use href="#icon-sun"></use></svg>
@@ -320,8 +320,9 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const folderName of sortedFolderNames) {
                 const itemsInFolder = folderGroups[folderName];
                 itemsInFolder.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-                folderStatus.textContent = `معالجة المجلد: ${folderName.replace(/\/$/, '')} (${folderCounter} من ${sortedFolderNames.length})`;
-                await processSingleFolder(folderName, itemsInFolder, finalMasterZip, startTime);
+                
+                // Process the folder
+                await processSingleFolder(folderName, itemsInFolder, finalMasterZip, startTime, folderCounter, sortedFolderNames.length);
                 folderCounter++;
             }
 
@@ -330,24 +331,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error(error); showAlert(`حدث خطأ: ${error.message}`, 'danger'); resetUI(); }
     });
 
-    // --- NEW: Helper function to convert canvas to blob and add to ZIP immediately ---
-    async function saveCanvasToZip(canvas, zipFolder, index) {
-        const quality = parseFloat(qualitySlider.value);
-        const format = outputFormatSelect.value;
-        const fileExtension = format === 'image/webp' ? 'webp' : 'jpg';
-        
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
-        const paddedIndex = index.toString().padStart(3, '0');
-        // Use STORE (no compression) because webp/jpg are already compressed. Saves huge amount of time.
-        zipFolder.file(`${paddedIndex}.${fileExtension}`, blob, { compression: "STORE" });
-        globalFinalCanvasesCount++;
-    }
-
-    async function processSingleFolder(folderName, imageItems, finalMasterZip, startTime) {
-        const BATCH_SIZE = 4;
+    async function processSingleFolder(folderName, imageItems, finalMasterZip, startTime, currentFolderNum, totalFolders) {
+        // INCREASED BATCH SIZE: Loading images is fast, no need to do it in tiny chunks
+        const BATCH_SIZE = 10; 
         const totalImagesInThisFolder = imageItems.length;
+        let folderCanvases = []; // Array to hold THIS folder's canvases
         let workingCanvas, ctx, currentY;
-        let canvasIndex = 1; // Counter for naming files inside the folder
         
         const zipFolder = finalMasterZip.folder(folderName.replace(/\/$/, ''));
         const selectedRatioValue = aspectRatioSelect.value;
@@ -358,11 +347,14 @@ document.addEventListener('DOMContentLoaded', () => {
         function createNewWorkingCanvas() {
             workingCanvas = document.createElement('canvas');
             workingCanvas.width = targetWidth; workingCanvas.height = maxLength;
-            ctx = workingCanvas.getContext('2d', { alpha: false }); // Optimize for non-transparent backgrounds
+            ctx = workingCanvas.getContext('2d', { alpha: false }); // Optimize
             ctx.fillStyle = 'white'; ctx.fillRect(0, 0, targetWidth, maxLength);
             currentY = 0;
         }
 
+        folderStatus.textContent = `رسم صور المجلد: ${folderName.replace(/\/$/, '')} (${currentFolderNum}/${totalFolders})`;
+
+        // PHASE 1: DRAWING LOOP (Very Fast)
         for (let i = 0; i < totalImagesInThisFolder; i += BATCH_SIZE) {
             const batch = imageItems.slice(i, i + BATCH_SIZE);
             const imagePromises = batch.map(item => 
@@ -394,55 +386,75 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (autoSplit && currentY > 0 && currentY + newHeight > maxLength) {
-                    // Crop and Save IMMEDIATELY
                     const finalCanvas = document.createElement('canvas');
                     finalCanvas.width = targetWidth; finalCanvas.height = currentY; 
                     finalCanvas.getContext('2d', { alpha: false }).drawImage(workingCanvas, 0, 0, targetWidth, currentY, 0, 0, targetWidth, currentY);
                     
-                    await saveCanvasToZip(finalCanvas, zipFolder, canvasIndex++);
-                    
-                    // Clear memory immediately
-                    finalCanvas.width = 0; finalCanvas.height = 0; 
+                    // PUSH TO ARRAY INSTEAD OF WAITING FOR COMPRESSION
+                    folderCanvases.push(finalCanvas);
                     createNewWorkingCanvas();
                 }
 
                 ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, currentY, targetWidth, newHeight);
                 currentY += newHeight;
-                // Clear original image from memory
-                img.src = ''; 
+                img.src = ''; // Clear image memory
             }
 
             globalProcessedImages += batch.length;
             const progress = (globalProcessedImages / globalTotalImages) * 100;
             progressBar.style.width = `${progress}%`; progressBar.textContent = `${Math.round(progress)}%`;
-            progressStatus.textContent = `معالجة صورة ${globalProcessedImages} من ${globalTotalImages}`;
+            progressStatus.textContent = `رسم صورة ${globalProcessedImages} من ${globalTotalImages}`;
             
             const timeElapsed = (performance.now() - startTime) / 1000;
             const timePerImage = timeElapsed / globalProcessedImages;
             const remainingTime = Math.round(timePerImage * (globalTotalImages - globalProcessedImages));
             etaDisplay.textContent = `الوقت المتبقي الكلي: ~${remainingTime} ثانية`;
             
-            // Allow UI to update and garbage collector to run
-            await new Promise(r => setTimeout(r, 0));
+            await new Promise(r => setTimeout(r, 0)); // Yield to UI
         }
 
         if (workingCanvas && currentY > 0) {
             const finalCanvas = document.createElement('canvas');
             finalCanvas.width = targetWidth; finalCanvas.height = currentY;
             finalCanvas.getContext('2d', { alpha: false }).drawImage(workingCanvas, 0, 0, targetWidth, currentY, 0, 0, targetWidth, currentY);
-            
-            await saveCanvasToZip(finalCanvas, zipFolder, canvasIndex);
-            
-            finalCanvas.width = 0; finalCanvas.height = 0;
+            folderCanvases.push(finalCanvas);
             workingCanvas.width = 0; workingCanvas.height = 0;
         }
+
+        // PHASE 2: CONVERT AND COMPRESS (Per Folder)
+        folderStatus.textContent = `ضغط وتقليص حجم صور المجلد: ${folderName.replace(/\/$/, '')}...`;
+        progressStatus.textContent = `جاري التحويل إلى ${outputFormatSelect.value === 'image/webp' ? 'WebP' : 'JPEG'}...`;
+        
+        const quality = parseFloat(qualitySlider.value);
+        const format = outputFormatSelect.value;
+        const fileExtension = format === 'image/webp' ? 'webp' : 'jpg';
+
+        for (let i = 0; i < folderCanvases.length; i++) {
+            const canvas = folderCanvases[i];
+            
+            // Convert to Blob (This takes a little time, but we update UI)
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
+            
+            const paddedIndex = (i + 1).toString().padStart(3, '0');
+            // Use STORE compression (VERY FAST for zip generation)
+            zipFolder.file(`${paddedIndex}.${fileExtension}`, blob, { compression: "STORE" });
+            
+            globalFinalCanvasesCount++;
+            
+            // FREE MEMORY IMMEDIATELY
+            canvas.width = 0; canvas.height = 0;
+            folderCanvases[i] = null; 
+        }
+        
+        folderCanvases = []; // Clear array
     }
     
     async function downloadMasterZip(finalMasterZip, startTime) {
-        progressStatus.textContent = 'تجميع وحفظ ملف ZIP النهائي... (سريع جداً)';
-        folderStatus.textContent = ''; etaDisplay.textContent = 'جاري التجهيز للتحميل، يرجى الانتظار ثانية...';
+        progressStatus.textContent = 'تجهيز ملف التحميل النهائي...';
+        folderStatus.textContent = 'لحظات ويتم التحميل...'; 
+        etaDisplay.textContent = '';
         
-        // Use STORE here as well to prevent re-compressing already compressed files
+        // Using STORE here is the secret to 0 delay at 100%
         const content = await finalMasterZip.generateAsync({ 
             type: 'blob',
             compression: "STORE" 
@@ -461,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
         processingArea.classList.add('hidden'); resultsArea.classList.remove('hidden');
         const statsGrid = document.querySelector('#results-area .stats-grid');
         statsGrid.innerHTML = `
-            <div class="stat-item"><strong>الصور الأصلية</strong><span>${globalTotalImages}</span></div>
+            <div class="stat-item"><strong>الصور المرفوعة</strong><span>${globalTotalImages}</span></div>
             <div class="stat-item"><strong>الصور الناتجة</strong><span>${globalFinalCanvasesCount}</span></div>
             <div class="stat-item"><strong>الحجم الأصلي</strong><span>${formatBytes(totalOriginalSize)}</span></div>
             <div class="stat-item" style="border-left-color: var(--warning-color);"><strong>حجم الملف النهائي</strong><span style="color: var(--warning-color);">${formatBytes(finalZipSize)}</span></div>
