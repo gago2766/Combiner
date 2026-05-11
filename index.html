@@ -39,7 +39,7 @@
         }
         .drop-zone.dragover { border-color: var(--primary-color); background-color: rgba(0, 123, 255, 0.05); }
         .drop-zone .icon { width: 64px; height: 64px; fill: var(--primary-color); margin-bottom: 1rem; }
-        .drop-zone p { margin: 0; font-size: 1.1rem; }
+        .drop-zone p { margin: 0; font-size: 1.1rem; line-height: 1.5; }
         .drop-zone .file-input-label { color: var(--primary-color); font-weight: bold; text-decoration: underline; }
         #fileInput { display: none; }
         #settings {
@@ -70,6 +70,7 @@
         .progress-bar-container { width: 100%; background-color: var(--border-color); border-radius: 20px; overflow: hidden; margin: 1rem 0; }
         #progress-bar { width: 0%; height: 20px; background-color: var(--success-color); transition: width 0.3s ease-in-out; text-align: center; line-height: 20px; color: white; font-weight: bold; }
         #eta, #progress-status { font-size: 0.9rem; color: var(--text-color); opacity: 0.8; }
+        #folder-status { font-size: 0.8rem; color: var(--primary-color); font-weight: bold; margin-bottom: 0.5rem; }
         #results-area h3 { margin-top: 0; color: var(--success-color); display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
         #results-area .icon { width: 24px; height: 24px; fill: var(--success-color); }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1.5rem; text-align: right; }
@@ -89,7 +90,6 @@
 </head>
 <body>
 
-    <!-- Icons SVG Definitions -->
     <svg width="0" height="0" class="hidden">
       <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 4h14v-2H5z"/></symbol>
       <symbol id="icon-process" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></symbol>
@@ -107,7 +107,7 @@
 
     <div class="container">
         <header>
-            <h1>أداة دمج الصور</h1>
+            <h1>أداة دمج المانجا والويبتون</h1>
             <button class="dark-mode-toggle" id="darkModeToggle" aria-label="Toggle Dark Mode">
                 <svg class="icon" id="moon-icon"><use href="#icon-moon"></use></svg>
                 <svg class="icon" id="sun-icon"><use href="#icon-sun"></use></svg>
@@ -118,14 +118,13 @@
             <div id="uploader">
                 <div class="drop-zone" id="dropZone">
                     <svg class="icon"><use href="#icon-upload"></use></svg>
-                    <p>اسحب وأفلت ملف .zip هنا، أو <label for="fileInput" class="file-input-label">اختر ملفًا</label></p>
-                    <input type="file" id="fileInput" accept=".zip">
+                    <p>اسحب وأفلت <b>ملف .zip (يحتوي على مجلدات/صور)</b> أو <b>مجموعة صور</b> هنا<br>أو <label for="fileInput" class="file-input-label">تصفح جهازك</label></p>
+                    <input type="file" id="fileInput" accept=".zip, image/jpeg, image/png, image/webp" multiple>
                 </div>
                 <div id="file-info" class="hidden" style="margin-top: 1rem; font-weight: bold;"></div>
             </div>
 
             <div id="settings" class="hidden">
-                <!-- START: ADDED ASPECT RATIO SETTING -->
                 <div class="setting-group">
                     <label for="aspectRatio">نسبة أبعاد الصورة لكل صورة</label>
                     <select id="aspectRatio">
@@ -137,7 +136,14 @@
                         <option value="1.7777">16:9 (شاشة عريضة)</option>
                     </select>
                 </div>
-                <!-- END: ADDED ASPECT RATIO SETTING -->
+                
+                <div class="setting-group">
+                    <label for="outputFormat">صيغة الصورة الناتجة</label>
+                    <select id="outputFormat">
+                        <option value="image/webp" selected>WebP (حجم صغير جداً - يوصى به)</option>
+                        <option value="image/jpeg">JPEG (حجم عادي)</option>
+                    </select>
+                </div>
 
                 <div class="setting-group">
                     <label for="uniformWidth">العرض الموحد للصور (بكسل)</label>
@@ -147,17 +153,17 @@
                     </div>
                 </div>
                 <div class="setting-group">
-                    <label for="maxLength">الطول الأقصى للصورة الواحدة (بكسل)</label>
+                    <label for="maxLength">الطول الأقصى للصورة الواحدة</label>
                     <div>
                         <input type="range" id="maxLength" min="1000" max="30000" value="10000" step="1000">
                         <span class="range-value" id="maxLengthValue">10000</span>
                     </div>
                 </div>
                 <div class="setting-group">
-                    <label for="quality">جودة الصورة (JPEG)</label>
+                    <label for="quality">الجودة (لتقليص الحجم)</label>
                     <div>
-                        <input type="range" id="quality" min="0.1" max="1.0" value="0.8" step="0.05">
-                        <span class="range-value" id="qualityValue">80%</span>
+                        <input type="range" id="quality" min="0.1" max="1.0" value="0.75" step="0.05">
+                        <span class="range-value" id="qualityValue">75%</span>
                     </div>
                 </div>
                 <div class="setting-group" style="flex-direction: row; align-items: center;">
@@ -173,6 +179,7 @@
             
             <div id="processing-area" class="hidden">
                  <h3><svg class="icon"><use href="#icon-process"></use></svg> جاري المعالجة...</h3>
+                <div id="folder-status">تحليل الملفات...</div>
                 <div class="progress-bar-container"><div id="progress-bar">0%</div></div>
                 <div id="progress-status">التحضير...</div>
                 <div id="eta">الوقت المتبقي: حساب...</div>
@@ -181,14 +188,13 @@
             <div id="results-area" class="hidden">
                 <h3><svg class="icon"><use href="#icon-check"></use></svg> اكتملت العملية بنجاح!</h3>
                 <div class="stats-grid"></div>
-                <p style="margin-top: 1.5rem;">تم تجميع الصور الناتجة في ملف .zip جاهز للتحميل.</p>
+                <p style="margin-top: 1.5rem;">تم تجميع الصور الناتجة في المجلدات ضمن ملف ZIP جاهز للتحميل.</p>
             </div>
         </main>
     </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM elements
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const fileInfo = document.getElementById('file-info');
@@ -198,10 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsArea = document.getElementById('results-area');
     const progressBar = document.getElementById('progress-bar');
     const progressStatus = document.getElementById('progress-status');
+    const folderStatus = document.getElementById('folder-status');
     const etaDisplay = document.getElementById('eta');
     
-    // Settings elements
-    const aspectRatioSelect = document.getElementById('aspectRatio'); // NEW
+    const aspectRatioSelect = document.getElementById('aspectRatio');
+    const outputFormatSelect = document.getElementById('outputFormat');
     const uniformWidthSlider = document.getElementById('uniformWidth');
     const uniformWidthValue = document.getElementById('uniformWidthValue');
     const maxLengthSlider = document.getElementById('maxLength');
@@ -211,8 +218,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const autoSplitCheckbox = document.getElementById('autoSplit');
     const darkModeToggle = document.getElementById('darkModeToggle');
 
-    let selectedFile = null;
+    let uploadType = null;
+    let rawFiles = [];
     let totalOriginalSize = 0;
+    let outputFilename = 'combined_images.zip';
+
+    // Global tracking for multiple folders
+    let globalTotalImages = 0;
+    let globalProcessedImages = 0;
+    let globalFinalCanvasesCount = 0;
 
     const showAlert = (message, type = 'danger', duration = 4000) => {
         const alertBox = document.getElementById('alert-box');
@@ -241,11 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.documentElement.classList.toggle('dark-mode', isDark);
         localStorage.setItem('darkMode', isDark);
     };
-    
-    darkModeToggle.addEventListener('click', () => {
-        applyDarkMode(!document.documentElement.classList.contains('dark-mode'));
-    });
-    
+    darkModeToggle.addEventListener('click', () => { applyDarkMode(!document.documentElement.classList.contains('dark-mode')); });
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const savedMode = localStorage.getItem('darkMode');
     applyDarkMode(savedMode !== null ? savedMode === 'true' : prefersDark);
@@ -259,54 +269,135 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); });
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+            if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
         });
         dropZone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFiles(e.target.files); });
     };
     setupDragAndDrop();
 
-    function handleFile(file) {
-        if (file && file.type === 'application/zip') {
-            selectedFile = file;
-            fileInfo.textContent = `الملف المحدد: ${file.name} (${formatBytes(file.size)})`;
-            fileInfo.classList.remove('hidden');
-            settingsDiv.classList.remove('hidden');
-            startBtn.disabled = false;
-            resultsArea.classList.add('hidden');
-            processingArea.classList.add('hidden');
+    function handleFiles(files) {
+        rawFiles = Array.from(files);
+        totalOriginalSize = 0;
+        
+        if (rawFiles.length === 1 && rawFiles[0].type === 'application/zip') {
+            uploadType = 'zip';
+            totalOriginalSize = rawFiles[0].size;
+            outputFilename = `${rawFiles[0].name.replace('.zip', '')}_combined.zip`;
+            fileInfo.textContent = `ملف ZIP: ${rawFiles[0].name} (${formatBytes(totalOriginalSize)})`;
+            showSettings();
         } else {
-            showAlert('الرجاء اختيار ملف .zip صالح.', 'warning');
-            selectedFile = null;
-            fileInfo.classList.add('hidden');
-            settingsDiv.classList.add('hidden');
-            startBtn.disabled = true;
+            rawFiles = rawFiles.filter(file => /\.(jpe?g|png|webp)$/i.test(file.name));
+            if (rawFiles.length > 0) {
+                uploadType = 'images';
+                outputFilename = `images_combined_${new Date().getTime()}.zip`;
+                rawFiles.forEach(file => { totalOriginalSize += file.size; });
+                fileInfo.textContent = `تم تحديد ${rawFiles.length} صورة (${formatBytes(totalOriginalSize)})`;
+                showSettings();
+            } else {
+                showAlert('الرجاء اختيار ملف .zip صالح أو صور صالحة.', 'warning');
+                resetState();
+            }
         }
     }
 
+    function showSettings() {
+        fileInfo.classList.remove('hidden');
+        settingsDiv.classList.remove('hidden');
+        startBtn.disabled = false;
+        resultsArea.classList.add('hidden');
+        processingArea.classList.add('hidden');
+    }
+
+    function resetState() {
+        uploadType = null;
+        rawFiles = [];
+        fileInfo.classList.add('hidden');
+        settingsDiv.classList.add('hidden');
+        startBtn.disabled = true;
+    }
+
     startBtn.addEventListener('click', async () => {
-        if (!selectedFile) { showAlert('لم يتم اختيار ملف!'); return; }
+        if (!uploadType || rawFiles.length === 0) { showAlert('لم يتم اختيار ملفات!'); return; }
+        
         startBtn.disabled = true;
         settingsDiv.classList.add('hidden');
         processingArea.classList.remove('hidden');
         resultsArea.classList.add('hidden');
         progressBar.style.width = '0%'; progressBar.textContent = '0%';
-        progressStatus.textContent = 'قراءة ملف ZIP...';
+        progressStatus.textContent = 'تحليل المجلدات والصور...';
+        folderStatus.textContent = '';
         etaDisplay.textContent = 'الوقت المتبقي: حساب...';
-        totalOriginalSize = 0;
+        
         const startTime = performance.now();
+        
+        // START: MULTI-FOLDER LOGIC - Group images by their directory
+        const folderGroups = {}; // Dictionary to hold folders and their images
+        globalTotalImages = 0;
+        globalProcessedImages = 0;
+        globalFinalCanvasesCount = 0;
+
         try {
-            const zip = await JSZip.loadAsync(selectedFile);
-            const imageFiles = [];
-            zip.forEach((_, zipEntry) => {
-                if (!zipEntry.dir && /\.(jpe?g|png|webp)$/i.test(zipEntry.name)) {
-                    imageFiles.push(zipEntry);
-                    totalOriginalSize += zipEntry._data.uncompressedSize;
-                }
-            });
-            imageFiles.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-            if (imageFiles.length === 0) throw new Error('ملف ZIP لا يحتوي على صور صالحة.');
-            await processImagesInBatches(imageFiles, startTime);
+            if (uploadType === 'zip') {
+                const zip = await JSZip.loadAsync(rawFiles[0]);
+                totalOriginalSize = 0; 
+                
+                zip.forEach((relativePath, zipEntry) => {
+                    if (!zipEntry.dir && /\.(jpe?g|png|webp)$/i.test(zipEntry.name)) {
+                        totalOriginalSize += zipEntry._data.uncompressedSize;
+                        
+                        // Extract folder path (e.g., "Chapter 1/page.jpg" -> "Chapter 1/")
+                        const lastSlashIndex = relativePath.lastIndexOf('/');
+                        const folderName = lastSlashIndex !== -1 ? relativePath.substring(0, lastSlashIndex + 1) : 'Root/';
+                        
+                        if (!folderGroups[folderName]) folderGroups[folderName] = [];
+                        
+                        folderGroups[folderName].push({
+                            name: zipEntry.name,
+                            getBlob: () => zipEntry.async('blob')
+                        });
+                        globalTotalImages++;
+                    }
+                });
+            } else if (uploadType === 'images') {
+                // Put all raw images in a single 'Root' folder
+                const folderName = 'Root/';
+                folderGroups[folderName] = [];
+                rawFiles.forEach(file => {
+                    folderGroups[folderName].push({
+                        name: file.name,
+                        getBlob: () => Promise.resolve(file)
+                    });
+                    globalTotalImages++;
+                });
+            }
+
+            if (globalTotalImages === 0) throw new Error('لم يتم العثور على صور صالحة.');
+
+            // Sort folders alphabetically
+            const sortedFolderNames = Object.keys(folderGroups).sort();
+            
+            // Create the Master ZIP that will hold the final folders
+            const finalMasterZip = new JSZip();
+
+            // Process each folder one by one
+            let folderCounter = 1;
+            for (const folderName of sortedFolderNames) {
+                const itemsInFolder = folderGroups[folderName];
+                
+                // Sort items inside this specific folder naturally
+                itemsInFolder.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+                
+                folderStatus.textContent = `معالجة المجلد: ${folderName.replace(/\/$/, '')} (${folderCounter} من ${sortedFolderNames.length})`;
+                
+                // Await processing of this specific folder
+                await processSingleFolder(folderName, itemsInFolder, finalMasterZip, startTime);
+                folderCounter++;
+            }
+
+            // All folders processed, now download the Master ZIP
+            await downloadMasterZip(finalMasterZip, startTime);
+            
         } catch (error) {
             console.error(error);
             showAlert(`حدث خطأ: ${error.message}`, 'danger');
@@ -314,14 +405,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    async function processImagesInBatches(imageFiles, startTime) {
+    async function processSingleFolder(folderName, imageItems, finalMasterZip, startTime) {
         const BATCH_SIZE = 5;
-        const totalImages = imageFiles.length;
-        let processedCount = 0;
+        const totalImagesInThisFolder = imageItems.length;
         let canvases = [];
         let workingCanvas, ctx, currentY;
         
-        // Get Settings
         const selectedRatioValue = aspectRatioSelect.value;
         const targetWidth = parseInt(uniformWidthSlider.value, 10);
         const maxLength = parseInt(maxLengthSlider.value, 10);
@@ -337,13 +426,11 @@ document.addEventListener('DOMContentLoaded', () => {
             currentY = 0;
         }
 
-        for (let i = 0; i < totalImages; i += BATCH_SIZE) {
-            progressStatus.textContent = `معالجة الصور ${i + 1} - ${Math.min(i + BATCH_SIZE, totalImages)} من ${totalImages}...`;
-            
-            const batch = imageFiles.slice(i, i + BATCH_SIZE);
+        for (let i = 0; i < totalImagesInThisFolder; i += BATCH_SIZE) {
+            const batch = imageItems.slice(i, i + BATCH_SIZE);
 
-            const imagePromises = batch.map(file => 
-                file.async('blob').then(blob => new Promise((resolve, reject) => {
+            const imagePromises = batch.map(item => 
+                item.getBlob().then(blob => new Promise((resolve, reject) => {
                     const img = new Image();
                     img.onload = () => { URL.revokeObjectURL(img.src); resolve(img); };
                     img.onerror = reject;
@@ -356,113 +443,107 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const img of loadedImages) {
                 if (!workingCanvas) { createNewWorkingCanvas(); }
                 
-                let newHeight;
-                // Variables for center cropping
-                let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+                let newHeight, sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
 
-                // --- START: ASPECT RATIO CALCULATION AND CROPPING LOGIC ---
                 if (selectedRatioValue === 'original') {
-                    // Keep original aspect ratio
-                    const imgRatio = img.width / img.height;
-                    newHeight = Math.round(targetWidth / imgRatio);
+                    newHeight = Math.round(targetWidth / (img.width / img.height));
                 } else {
-                    // Force selected aspect ratio
                     const targetRatio = parseFloat(selectedRatioValue);
                     newHeight = Math.round(targetWidth / targetRatio);
-                    
                     const imgRatio = img.width / img.height;
 
                     if (imgRatio > targetRatio) {
-                        // Original image is wider than target ratio (Crop left and right)
-                        sHeight = img.height;
-                        sWidth = img.height * targetRatio;
-                        sx = (img.width - sWidth) / 2;
-                        sy = 0;
+                        sHeight = img.height; sWidth = img.height * targetRatio;
+                        sx = (img.width - sWidth) / 2; sy = 0;
                     } else {
-                        // Original image is taller than target ratio (Crop top and bottom)
-                        sWidth = img.width;
-                        sHeight = img.width / targetRatio;
-                        sx = 0;
-                        sy = (img.height - sHeight) / 2;
+                        sWidth = img.width; sHeight = img.width / targetRatio;
+                        sx = 0; sy = (img.height - sHeight) / 2;
                     }
                 }
-                // --- END: ASPECT RATIO CALCULATION ---
 
                 if (autoSplit && currentY > 0 && currentY + newHeight > maxLength) {
                     const finalCanvas = document.createElement('canvas');
-                    finalCanvas.width = targetWidth;
-                    finalCanvas.height = currentY; 
+                    finalCanvas.width = targetWidth; finalCanvas.height = currentY; 
                     finalCanvas.getContext('2d').drawImage(workingCanvas, 0, 0, targetWidth, currentY, 0, 0, targetWidth, currentY);
                     canvases.push(finalCanvas);
                     createNewWorkingCanvas();
                 }
 
-                // Draw the cropped/resized image onto the canvas
                 ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, currentY, targetWidth, newHeight);
                 currentY += newHeight;
             }
 
-            processedCount += batch.length;
-            const progress = (processedCount / totalImages) * 100;
+            // Update GLOBAL Progress
+            globalProcessedImages += batch.length;
+            const progress = (globalProcessedImages / globalTotalImages) * 100;
             progressBar.style.width = `${progress}%`;
             progressBar.textContent = `${Math.round(progress)}%`;
+            progressStatus.textContent = `معالجة صورة ${globalProcessedImages} من ${globalTotalImages} الإجمالي`;
+            
             const timeElapsed = (performance.now() - startTime) / 1000;
-            const timePerImage = timeElapsed / processedCount;
-            const remainingTime = Math.round(timePerImage * (totalImages - processedCount));
-            etaDisplay.textContent = `الوقت المتبقي: ~${remainingTime} ثانية`;
+            const timePerImage = timeElapsed / globalProcessedImages;
+            const remainingTime = Math.round(timePerImage * (globalTotalImages - globalProcessedImages));
+            etaDisplay.textContent = `الوقت المتبقي الكلي: ~${remainingTime} ثانية`;
         }
 
         if (workingCanvas && currentY > 0) {
             const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = targetWidth;
-            finalCanvas.height = currentY;
+            finalCanvas.width = targetWidth; finalCanvas.height = currentY;
             finalCanvas.getContext('2d').drawImage(workingCanvas, 0, 0, targetWidth, currentY, 0, 0, targetWidth, currentY);
             canvases.push(finalCanvas);
         }
         
-        await finalizeAndDownload(canvases, startTime, imageFiles.length);
-    }
-    
-    async function finalizeAndDownload(canvases, startTime, originalImageCount) {
-        progressStatus.textContent = 'إنشاء ملف ZIP النهائي...';
-        etaDisplay.textContent = '';
-        const outputZip = new JSZip();
+        // Add canvases of this folder to the Master ZIP inside their specific folder
         const quality = parseFloat(qualitySlider.value);
-        let totalFinalWidth = 0, totalFinalHeight = 0;
+        const format = outputFormatSelect.value;
+        const fileExtension = format === 'image/webp' ? 'webp' : 'jpg';
         
+        // Create folder inside ZIP (removes trailing slash if exists)
+        const zipFolder = finalMasterZip.folder(folderName.replace(/\/$/, ''));
+
         for (let i = 0; i < canvases.length; i++) {
             const canvas = canvases[i];
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
             const paddedIndex = (i + 1).toString().padStart(3, '0');
-            outputZip.file(`${paddedIndex}.jpg`, blob);
-            totalFinalWidth = canvas.width;
-            totalFinalHeight += canvas.height;
+            zipFolder.file(`${paddedIndex}.${fileExtension}`, blob);
+            globalFinalCanvasesCount++;
         }
+    }
+    
+    async function downloadMasterZip(finalMasterZip, startTime) {
+        progressStatus.textContent = 'تجميع وحفظ ملف ZIP النهائي...';
+        folderStatus.textContent = '';
+        etaDisplay.textContent = '';
         
-        const content = await outputZip.generateAsync({ type: 'blob' });
+        const content = await finalMasterZip.generateAsync({ type: 'blob' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(content);
-        link.download = `${selectedFile.name.replace('.zip', '')}_combined.zip`;
+        link.download = outputFilename; 
+        
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
         const endTime = performance.now();
-        showResults(originalImageCount, canvases.length, totalFinalWidth, totalFinalHeight, (endTime - startTime) / 1000);
+        
+        showResults((endTime - startTime) / 1000, content.size);
     }
     
-    function showResults(originalCount, splitCount, finalWidth, finalHeight, timeTaken) {
+    function showResults(timeTaken, finalZipSize) {
         processingArea.classList.add('hidden');
         resultsArea.classList.remove('hidden');
         const statsGrid = document.querySelector('#results-area .stats-grid');
         statsGrid.innerHTML = `
-            <div class="stat-item"><strong>الصور الأصلية</strong><span>${originalCount}</span></div>
-            <div class="stat-item"><strong>الصور الناتجة</strong><span>${splitCount}</span></div>
+            <div class="stat-item"><strong>إجمالي الصور المرفوعة</strong><span>${globalTotalImages}</span></div>
+            <div class="stat-item"><strong>إجمالي الصور الناتجة</strong><span>${globalFinalCanvasesCount}</span></div>
             <div class="stat-item"><strong>الحجم الأصلي</strong><span>${formatBytes(totalOriginalSize)}</span></div>
-            <div class="stat-item"><strong>الوقت المستغرق</strong><span>${timeTaken.toFixed(2)}s</span></div>
+            <div class="stat-item" style="border-left-color: var(--warning-color);">
+                <strong>حجم الملف النهائي</strong>
+                <span style="color: var(--warning-color);">${formatBytes(finalZipSize)}</span>
+            </div>
             <div class="stat-item" style="grid-column: 1 / -1;">
-                <strong>الأبعاد (العرض × الطول الإجمالي)</strong>
-                <span>${finalWidth}x${finalHeight}px</span>
+                <strong>الوقت المستغرق الإجمالي</strong>
+                <span>${timeTaken.toFixed(2)}s</span>
             </div>`;
         showAlert('تم إنشاء الملف بنجاح!', 'success');
         resetUI();
