@@ -345,9 +345,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const folderCanvases = [];   // completed slices ready for compression
 
         function sealCurrentCanvas() {
-            // Trim canvas to actual content height — NO extra copy canvas needed
-            workingCanvas.height = currentY;   // shrink in-place, content preserved
-            folderCanvases.push(workingCanvas);
+            // Create a trimmed canvas at exact content height
+            const trimmed = document.createElement('canvas');
+            trimmed.width = targetWidth;
+            trimmed.height = currentY;
+            trimmed.getContext('2d', { alpha: false }).drawImage(
+                workingCanvas, 0, 0, targetWidth, currentY, 0, 0, targetWidth, currentY
+            );
+            // Free the oversized working canvas immediately
+            workingCanvas.width = 0; workingCanvas.height = 0;
+            folderCanvases.push(trimmed);
             workingCanvas = null; ctx = null; currentY = 0;
         }
 
