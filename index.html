@@ -6,63 +6,115 @@
     <title>أداة دمج المانجا والويبتون</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        /* CSS styles */
         :root {
-            --bg-color: #f4f7f9; --text-color: #333; --primary-color: #007bff; --primary-hover: #0056b3; --card-bg: #ffffff; --border-color: #e0e0e0; --success-color: #28a745; --warning-color: #ffc107; --danger-color: #dc3545; --disabled-color: #ccc; --input-bg: #fff;
+            --bg-color: #f4f7f9; --text-color: #333; --primary-color: #007bff; --primary-hover: #0056b3; 
+            --card-bg: #ffffff; --border-color: #e0e0e0; --success-color: #28a745; --warning-color: #ffc107; 
+            --danger-color: #dc3545; --disabled-color: #ccc; --input-bg: #fff; --preview-bg: #1e1e24;
         }
         html.dark-mode {
-            --bg-color: #1a1a2e; --text-color: #e0e0e0; --primary-color: #1e90ff; --primary-hover: #1c7ed6; --card-bg: #2a2a40; --border-color: #40405a; --input-bg: #3a3a52;
+            --bg-color: #1a1a2e; --text-color: #e0e0e0; --primary-color: #1e90ff; --primary-hover: #1c7ed6; 
+            --card-bg: #2a2a40; --border-color: #40405a; --input-bg: #3a3a52; --preview-bg: #12121c;
         }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 2rem; display: flex; justify-content: center; align-items: flex-start; transition: background-color 0.3s, color 0.3s; min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); 
+            color: var(--text-color); margin: 0; padding: 2rem 1rem; display: flex; justify-content: center; 
+            align-items: flex-start; transition: background-color 0.3s, color 0.3s; min-height: 100vh;
         }
         .container {
-            width: 100%; max-width: 800px; background-color: var(--card-bg); border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); padding: 2.5rem; transition: background-color 0.3s;
+            width: 100%; max-width: 900px; background-color: var(--card-bg); border-radius: 14px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); padding: 2.2rem; transition: background-color 0.3s;
         }
         header {
-            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem;
+            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 1rem; margin-bottom: 2rem;
         }
-        header h1 {
-            margin: 0; font-size: 1.8rem; color: var(--primary-color);
-        }
+        header h1 { margin: 0; font-size: 1.8rem; color: var(--primary-color); }
         .dark-mode-toggle {
-            cursor: pointer; background: none; border: none; padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s;
+            cursor: pointer; background: none; border: none; padding: 8px; border-radius: 50%; display: flex; 
+            align-items: center; justify-content: center; transition: background-color 0.2s;
         }
         .dark-mode-toggle:hover { background-color: rgba(128, 128, 128, 0.2); }
         .dark-mode-toggle .icon { width: 24px; height: 24px; fill: var(--text-color); }
         #sun-icon { display: none; }
         html.dark-mode #moon-icon { display: none; }
         html.dark-mode #sun-icon { display: block; }
+        
         #uploader { text-align: center; }
         .drop-zone {
-            border: 3px dashed var(--border-color); border-radius: 12px; padding: 3rem 1rem; cursor: pointer; transition: border-color 0.3s, background-color 0.3s;
+            border: 3px dashed var(--border-color); border-radius: 12px; padding: 2.5rem 1rem; cursor: pointer; 
+            transition: border-color 0.3s, background-color 0.3s;
         }
         .drop-zone.dragover { border-color: var(--primary-color); background-color: rgba(0, 123, 255, 0.05); }
-        .drop-zone .icon { width: 64px; height: 64px; fill: var(--primary-color); margin-bottom: 1rem; }
+        .drop-zone .icon { width: 60px; height: 60px; fill: var(--primary-color); margin-bottom: 1rem; }
         .drop-zone p { margin: 0; font-size: 1.1rem; line-height: 1.5; }
         .drop-zone .file-input-label { color: var(--primary-color); font-weight: bold; text-decoration: underline; }
         #fileInput { display: none; }
+        
         #settings {
-            margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; align-items: center;
+            margin-top: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); 
+            gap: 1.5rem; align-items: start;
         }
-        .setting-group { display: flex; flex-direction: column; }
-        .setting-group label { margin-bottom: 0.5rem; font-weight: 600; }
-        .setting-group input[type="range"], .setting-group select {
-            width: 100%; padding: 0.5rem; background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 1rem;
+        .setting-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .setting-header { display: flex; justify-content: space-between; align-items: center; }
+        .setting-group label { font-weight: 600; font-size: 0.95rem; }
+        
+        .number-input {
+            width: 90px; padding: 0.35rem 0.5rem; border: 1px solid var(--border-color); 
+            border-radius: 6px; background-color: var(--input-bg); color: var(--text-color); 
+            font-size: 0.95rem; text-align: center; font-weight: bold;
         }
-        .setting-group input[type="range"] { padding: 0; }
-        .range-value { font-weight: bold; color: var(--primary-color); margin-left: 0.5rem; }
-        #autoSplit { margin-left: 0.5rem; }
+        .setting-group select {
+            width: 100%; padding: 0.55rem; background-color: var(--input-bg); color: var(--text-color); 
+            border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem;
+        }
+        .slider-wrapper { display: flex; align-items: center; gap: 0.8rem; }
+        .setting-group input[type="range"] { flex: 1; margin: 0; cursor: pointer; }
+        .range-value { font-weight: bold; color: var(--primary-color); min-width: 48px; text-align: left; }
+        
+        /* Preview Section */
+        #preview-section {
+            margin-top: 2rem; border: 1px solid var(--border-color); border-radius: 10px; 
+            padding: 1.2rem; background-color: var(--bg-color);
+        }
+        .preview-header-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .preview-header-bar h3 { margin: 0; font-size: 1.15rem; color: var(--text-color); }
+        .preview-meta { font-size: 0.85rem; color: var(--primary-color); font-weight: bold; }
+        .preview-viewport {
+            background-color: var(--preview-bg); border-radius: 8px; max-height: 480px; 
+            overflow-y: auto; overflow-x: hidden; padding: 1.5rem 0.5rem; display: flex; 
+            flex-direction: column; align-items: center; scroll-behavior: smooth;
+        }
+        .preview-stage {
+            display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 550px;
+        }
+        .preview-slice-wrapper {
+            position: relative; width: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 2px dashed rgba(255,255,255,0.25); border-radius: 4px; overflow: hidden; background: #fff;
+        }
+        .preview-slice-wrapper canvas { display: block; width: 100%; height: auto; }
+        .slice-badge {
+            position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.75); color: #fff; 
+            font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; pointer-events: none;
+        }
+
         #start-btn {
-            grid-column: 1 / -1; padding: 0.8rem 1.5rem; font-size: 1.1rem; font-weight: bold; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            grid-column: 1 / -1; padding: 0.9rem 1.5rem; font-size: 1.15rem; font-weight: bold; 
+            background-color: var(--primary-color); color: white; border: none; border-radius: 8px; 
+            cursor: pointer; transition: background-color 0.3s, transform 0.1s; display: flex; 
+            align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.5rem;
         }
         #start-btn:hover { background-color: var(--primary-hover); }
         #start-btn:active { transform: scale(0.98); }
         #start-btn:disabled { background-color: var(--disabled-color); cursor: not-allowed; }
-        #start-btn .icon { width: 20px; height: 20px; fill: white; }
+        #start-btn .icon { width: 22px; height: 22px; fill: white; }
+        
         .hidden { display: none !important; }
+        
         #processing-area, #results-area {
-            margin-top: 2rem; padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 8px; text-align: center;
+            margin-top: 2rem; padding: 1.5rem; border: 1px solid var(--border-color); 
+            border-radius: 8px; text-align: center;
         }
         #processing-area h3 { margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
         #processing-area .icon { width: 24px; height: 24px; fill: var(--primary-color); animation: spin 1.5s linear infinite; }
@@ -70,22 +122,25 @@
         .progress-bar-container { width: 100%; background-color: var(--border-color); border-radius: 20px; overflow: hidden; margin: 1rem 0; }
         #progress-bar { width: 0%; height: 20px; background-color: var(--success-color); transition: width 0.3s ease-in-out; text-align: center; line-height: 20px; color: white; font-weight: bold; }
         #eta, #progress-status { font-size: 0.9rem; color: var(--text-color); opacity: 0.8; }
-        #folder-status { font-size: 0.8rem; color: var(--primary-color); font-weight: bold; margin-bottom: 0.5rem; }
+        #folder-status { font-size: 0.85rem; color: var(--primary-color); font-weight: bold; margin-bottom: 0.5rem; }
+        
         #results-area h3 { margin-top: 0; color: var(--success-color); display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
         #results-area .icon { width: 24px; height: 24px; fill: var(--success-color); }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1.5rem; text-align: right; }
-        .stat-item { background-color: var(--bg-color); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--primary-color); }
-        .stat-item strong { display: block; margin-bottom: 0.25rem; color: var(--text-color); opacity: 0.7; font-size: 0.9rem; }
+        .stat-item { background-color: var(--card-bg); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--primary-color); border: 1px solid var(--border-color); }
+        .stat-item strong { display: block; margin-bottom: 0.25rem; opacity: 0.75; font-size: 0.85rem; }
         .stat-item span { font-size: 1.2rem; font-weight: bold; }
+        
         #alert-box {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 1rem 2rem; border-radius: 8px; color: white; font-weight: bold; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; display: flex; align-items: center; gap: 0.75rem;
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 0.8rem 1.8rem; 
+            border-radius: 8px; color: white; font-weight: bold; z-index: 1000; opacity: 0; 
+            visibility: hidden; transition: opacity 0.3s, visibility 0.3s; display: flex; align-items: center; gap: 0.75rem;
         }
         #alert-box.show { opacity: 1; visibility: visible; }
         #alert-box.success { background-color: var(--success-color); }
         #alert-box.warning { background-color: var(--warning-color); color: #333; }
         #alert-box.danger { background-color: var(--danger-color); }
-        #alert-box .icon { width: 24px; height: 24px; fill: white; }
-        #alert-box.warning .icon { fill: #333; }
+        #alert-box .icon { width: 22px; height: 22px; fill: currentColor; }
     </style>
 </head>
 <body>
@@ -101,7 +156,7 @@
     </svg>
     
     <div id="alert-box">
-        <svg class="icon" id="alert-icon-placeholder"><use href="#icon-alert"></use></svg>
+        <svg class="icon"><use href="#icon-alert"></use></svg>
         <span id="alert-message"></span>
     </div>
 
@@ -133,40 +188,66 @@
                     </select>
                 </div>
 
+                <!-- Width Control with independent Number Input -->
                 <div class="setting-group">
-                    <label for="uniformWidth">العرض الموحد للصور (بكسل)</label>
-                    <div>
-                        <input type="range" id="uniformWidth" min="720" max="800" value="750" step="10">
-                        <span class="range-value" id="uniformWidthValue">750</span>
+                    <div class="setting-header">
+                        <label for="uniformWidth">العرض الموحد (بكسل)</label>
+                        <input type="number" id="customWidthInput" class="number-input" min="200" max="8000" value="750" title="اكتب العرض المطلوب يدوياً">
+                    </div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="uniformWidth" min="400" max="2000" value="750" step="10">
+                        <span class="range-value" id="uniformWidthValue">750px</span>
                     </div>
                 </div>
+
+                <!-- Max Length Control with independent Number Input -->
                 <div class="setting-group">
-                    <label for="maxLength">الطول الأقصى للصورة الواحدة</label>
-                    <div>
+                    <div class="setting-header">
+                        <label for="maxLength">الطول الأقصى للصورة (بكسل)</label>
+                        <input type="number" id="customLengthInput" class="number-input" min="500" max="60000" step="500" value="10000" title="اكتب الطول الأقصى المطلوب يدوياً">
+                    </div>
+                    <div class="slider-wrapper">
                         <input type="range" id="maxLength" min="1000" max="30000" value="10000" step="1000">
-                        <span class="range-value" id="maxLengthValue">10000</span>
+                        <span class="range-value" id="maxLengthValue">10000px</span>
                     </div>
                 </div>
+
                 <div class="setting-group">
                     <label for="quality">الجودة (لتقليص الحجم)</label>
-                    <div>
+                    <div class="slider-wrapper">
                         <input type="range" id="quality" min="0.1" max="1.0" value="0.75" step="0.05">
                         <span class="range-value" id="qualityValue">75%</span>
                     </div>
                 </div>
-                <div class="setting-group" style="flex-direction: row; align-items: center;">
-                    <label for="autoSplit">تقطيع الصور الطويلة تلقائيًا</label>
+
+                <div class="setting-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1.2rem;">
                     <input type="checkbox" id="autoSplit" checked>
+                    <label for="autoSplit" style="cursor:pointer;">تقطيع الصور الطويلة تلقائيًا حسب الطول الأقصى</label>
                 </div>
-                
-                <button id="start-btn" disabled>
+            </div>
+
+            <!-- Interactive Live Preview Section -->
+            <div id="preview-section" class="hidden">
+                <div class="preview-header-bar">
+                    <h3>معاينة تفاعلية حية (Live Preview)</h3>
+                    <div class="preview-meta" id="preview-meta">جاري المعاينة...</div>
+                </div>
+                <div class="preview-viewport">
+                    <div class="preview-stage" id="previewStage">
+                        <!-- Preview slices generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="action-section" class="hidden">
+                <button id="start-btn">
                     <svg class="icon"><use href="#icon-play"></use></svg>
-                    ابدأ الدمج
+                    ابدأ الدمج وتحميل الملف النهائي
                 </button>
             </div>
             
             <div id="processing-area" class="hidden">
-                 <h3><svg class="icon"><use href="#icon-process"></use></svg> جاري المعالجة السريعة...</h3>
+                <h3><svg class="icon"><use href="#icon-process"></use></svg> جاري المعالجة السريعة...</h3>
                 <div id="folder-status">تحليل الملفات...</div>
                 <div class="progress-bar-container"><div id="progress-bar">0%</div></div>
                 <div id="progress-status">التحضير...</div>
@@ -176,7 +257,7 @@
             <div id="results-area" class="hidden">
                 <h3><svg class="icon"><use href="#icon-check"></use></svg> اكتملت العملية بنجاح!</h3>
                 <div class="stats-grid"></div>
-                <p style="margin-top: 1.5rem;">تم تجميع الصور وحفظها في ملف ZIP.</p>
+                <p style="margin-top: 1.5rem;">تم تجميع الصور وحفظها في ملف ZIP بنجاح.</p>
             </div>
         </main>
     </div>
@@ -188,6 +269,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInfo = document.getElementById('file-info');
     const startBtn = document.getElementById('start-btn');
     const settingsDiv = document.getElementById('settings');
+    const previewSection = document.getElementById('preview-section');
+    const previewStage = document.getElementById('previewStage');
+    const previewMeta = document.getElementById('preview-meta');
+    const actionSection = document.getElementById('action-section');
     const processingArea = document.getElementById('processing-area');
     const resultsArea = document.getElementById('results-area');
     const progressBar = document.getElementById('progress-bar');
@@ -198,8 +283,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const outputFormatSelect = document.getElementById('outputFormat');
     const uniformWidthSlider = document.getElementById('uniformWidth');
     const uniformWidthValue = document.getElementById('uniformWidthValue');
+    const customWidthInput = document.getElementById('customWidthInput');
+
     const maxLengthSlider = document.getElementById('maxLength');
     const maxLengthValue = document.getElementById('maxLengthValue');
+    const customLengthInput = document.getElementById('customLengthInput');
+
     const qualitySlider = document.getElementById('quality');
     const qualityValue = document.getElementById('qualityValue');
     const autoSplitCheckbox = document.getElementById('autoSplit');
@@ -213,15 +302,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let globalProcessedImages = 0;
     let globalFinalCanvasesCount = 0;
 
-    // ─── Utility ────────────────────────────────────────────────────────────────
+    // Preview Cache
+    let previewImagesData = []; // { name, bmp }
+    let previewDebounceTimer = null;
+
+    // --- Utilities ---
     const showAlert = (message, type = 'danger', duration = 4000) => {
         const alertBox = document.getElementById('alert-box');
         const alertMessage = document.getElementById('alert-message');
-        const alertIcon = document.getElementById('alert-icon-placeholder');
         alertBox.className = 'alert-box';
         alertBox.classList.add(type);
         alertMessage.textContent = message;
-        alertIcon.innerHTML = `<use href="${type === 'success' ? '#icon-check' : '#icon-alert'}"></use>`;
         alertBox.classList.add('show');
         setTimeout(() => alertBox.classList.remove('show'), duration);
     };
@@ -235,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const yieldToUI = () => new Promise(r => setTimeout(r, 0));
 
-    // ─── Dark mode ───────────────────────────────────────────────────────────────
+    // --- Dark Mode ---
     const applyDarkMode = (isDark) => {
         document.documentElement.classList.toggle('dark-mode', isDark);
         localStorage.setItem('darkMode', isDark);
@@ -245,12 +336,64 @@ document.addEventListener('DOMContentLoaded', () => {
         ? localStorage.getItem('darkMode') === 'true'
         : window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-    // ─── Slider labels ───────────────────────────────────────────────────────────
-    uniformWidthSlider.addEventListener('input', (e) => { uniformWidthValue.textContent = e.target.value; });
-    maxLengthSlider.addEventListener('input', (e) => { maxLengthValue.textContent = e.target.value; });
-    qualitySlider.addEventListener('input', (e) => { qualityValue.textContent = `${Math.round(e.target.value * 100)}%`; });
+    // --- Dimension Sync & Independent Controls ---
+    function getActiveWidth() {
+        const val = parseInt(customWidthInput.value, 10);
+        return isNaN(val) || val <= 0 ? 750 : val;
+    }
 
-    // ─── Drag-and-drop / file picker ─────────────────────────────────────────────
+    function getActiveMaxLength() {
+        const val = parseInt(customLengthInput.value, 10);
+        return isNaN(val) || val <= 0 ? 10000 : val;
+    }
+
+    // Width: Slider change
+    uniformWidthSlider.addEventListener('input', (e) => {
+        const val = e.target.value;
+        customWidthInput.value = val;
+        uniformWidthValue.textContent = `${val}px`;
+        triggerLivePreview();
+    });
+
+    // Width: Manual Input change (Overrides slider)
+    customWidthInput.addEventListener('input', () => {
+        const val = parseInt(customWidthInput.value, 10);
+        if (!isNaN(val) && val > 0) {
+            uniformWidthValue.textContent = `${val}px`;
+            if (val >= parseInt(uniformWidthSlider.min) && val <= parseInt(uniformWidthSlider.max)) {
+                uniformWidthSlider.value = val;
+            }
+            triggerLivePreview();
+        }
+    });
+
+    // Length: Slider change
+    maxLengthSlider.addEventListener('input', (e) => {
+        const val = e.target.value;
+        customLengthInput.value = val;
+        maxLengthValue.textContent = `${val}px`;
+        triggerLivePreview();
+    });
+
+    // Length: Manual Input change (Overrides slider)
+    customLengthInput.addEventListener('input', () => {
+        const val = parseInt(customLengthInput.value, 10);
+        if (!isNaN(val) && val > 0) {
+            maxLengthValue.textContent = `${val}px`;
+            if (val >= parseInt(maxLengthSlider.min) && val <= parseInt(maxLengthSlider.max)) {
+                maxLengthSlider.value = val;
+            }
+            triggerLivePreview();
+        }
+    });
+
+    qualitySlider.addEventListener('input', (e) => {
+        qualityValue.textContent = `${Math.round(e.target.value * 100)}%`;
+    });
+
+    autoSplitCheckbox.addEventListener('change', triggerLivePreview);
+
+    // --- Drag & Drop ---
     const setupDragAndDrop = () => {
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); });
@@ -260,45 +403,181 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     setupDragAndDrop();
 
-    function handleFiles(files) {
-        rawFiles = Array.from(files); totalOriginalSize = 0;
+    async function handleFiles(files) {
+        rawFiles = Array.from(files); 
+        totalOriginalSize = 0;
+        previewImagesData = [];
+
         if (rawFiles.length === 1 && rawFiles[0].type === 'application/zip') {
-            uploadType = 'zip'; totalOriginalSize = rawFiles[0].size;
+            uploadType = 'zip';
+            totalOriginalSize = rawFiles[0].size;
             outputFilename = `${rawFiles[0].name.replace('.zip', '')}_combined.zip`;
             fileInfo.textContent = `ملف ZIP: ${rawFiles[0].name} (${formatBytes(totalOriginalSize)})`;
-            showSettings();
+            await preparePreviewFromZip(rawFiles[0]);
+            showControls();
         } else {
             rawFiles = rawFiles.filter(f => /\.(jpe?g|png|webp)$/i.test(f.name));
             if (rawFiles.length > 0) {
-                uploadType = 'images'; outputFilename = `images_combined_${Date.now()}.zip`;
+                uploadType = 'images';
+                outputFilename = `images_combined_${Date.now()}.zip`;
                 rawFiles.forEach(f => { totalOriginalSize += f.size; });
                 fileInfo.textContent = `تم تحديد ${rawFiles.length} صورة (${formatBytes(totalOriginalSize)})`;
-                showSettings();
+                await preparePreviewFromImages(rawFiles);
+                showControls();
             } else {
-                showAlert('الرجاء اختيار ملف .zip صالح أو صور صالحة.', 'warning'); resetState();
+                showAlert('الرجاء اختيار ملف .zip صالح أو صور صالحة.', 'warning');
+                resetState();
             }
         }
     }
 
-    function showSettings() { fileInfo.classList.remove('hidden'); settingsDiv.classList.remove('hidden'); startBtn.disabled = false; resultsArea.classList.add('hidden'); processingArea.classList.add('hidden'); }
-    function resetState() { uploadType = null; rawFiles = []; fileInfo.classList.add('hidden'); settingsDiv.classList.add('hidden'); startBtn.disabled = true; }
-    function resetUI() { startBtn.disabled = false; settingsDiv.classList.remove('hidden'); }
+    function showControls() {
+        fileInfo.classList.remove('hidden');
+        settingsDiv.classList.remove('hidden');
+        previewSection.classList.remove('hidden');
+        actionSection.classList.remove('hidden');
+        resultsArea.classList.add('hidden');
+        processingArea.classList.add('hidden');
+        triggerLivePreview();
+    }
 
-    // ─── Main entry ──────────────────────────────────────────────────────────────
+    function resetState() {
+        uploadType = null; rawFiles = []; previewImagesData = [];
+        fileInfo.classList.add('hidden'); settingsDiv.classList.add('hidden');
+        previewSection.classList.add('hidden'); actionSection.classList.add('hidden');
+    }
+
+    // --- Loading Bitmaps for Live Preview ---
+    async function preparePreviewFromImages(files) {
+        const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+        // Load first 15 images for super-responsive preview
+        const previewSelection = sorted.slice(0, 15);
+        previewMeta.textContent = `جاري تحميل ${previewSelection.length} صور للمعاينة...`;
+        
+        previewImagesData = await Promise.all(previewSelection.map(async f => {
+            const bmp = await createImageBitmap(f);
+            return { name: f.name, bmp };
+        }));
+    }
+
+    async function preparePreviewFromZip(zipFile) {
+        previewMeta.textContent = 'تحليل محتويات ZIP للمعاينة...';
+        const zip = await JSZip.loadAsync(zipFile);
+        const entries = [];
+        zip.forEach((path, entry) => {
+            if (!entry.dir && /\.(jpe?g|png|webp)$/i.test(entry.name)) {
+                entries.push(entry);
+            }
+        });
+        entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+        const previewSelection = entries.slice(0, 15);
+        
+        previewImagesData = await Promise.all(previewSelection.map(async entry => {
+            const blob = await entry.async('blob');
+            const bmp = await createImageBitmap(blob);
+            return { name: entry.name, bmp };
+        }));
+    }
+
+    // --- Interactive Live Preview Rendering ---
+    function triggerLivePreview() {
+        if (!previewImagesData || previewImagesData.length === 0) return;
+        clearTimeout(previewDebounceTimer);
+        previewDebounceTimer = setTimeout(renderInteractivePreview, 120);
+    }
+
+    function renderInteractivePreview() {
+        const targetWidth = getActiveWidth();
+        const maxLength = getActiveMaxLength();
+        const autoSplit = autoSplitCheckbox.checked;
+
+        previewStage.innerHTML = '';
+        if (previewImagesData.length === 0) return;
+
+        let workingCanvas = null;
+        let ctx = null;
+        let currentY = 0;
+        let sliceCount = 0;
+
+        function createPreviewSlice() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'preview-slice-wrapper';
+
+            const trimmed = document.createElement('canvas');
+            trimmed.width = targetWidth;
+            trimmed.height = currentY;
+            trimmed.getContext('2d').drawImage(workingCanvas, 0, 0, targetWidth, currentY, 0, 0, targetWidth, currentY);
+
+            sliceCount++;
+            const badge = document.createElement('span');
+            badge.className = 'slice-badge';
+            badge.textContent = `قطعة #${sliceCount} (${targetWidth}×${currentY}px)`;
+
+            wrapper.appendChild(trimmed);
+            wrapper.appendChild(badge);
+            previewStage.appendChild(wrapper);
+
+            workingCanvas = null;
+            ctx = null;
+            currentY = 0;
+        }
+
+        function ensurePreviewCanvas() {
+            if (workingCanvas) return;
+            workingCanvas = document.createElement('canvas');
+            workingCanvas.width = targetWidth;
+            workingCanvas.height = maxLength;
+            ctx = workingCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, targetWidth, maxLength);
+        }
+
+        for (let i = 0; i < previewImagesData.length; i++) {
+            const { bmp } = previewImagesData[i];
+            const newHeight = Math.round(targetWidth * bmp.height / bmp.width);
+
+            if (autoSplit && currentY > 0 && (currentY + newHeight) > maxLength) {
+                createPreviewSlice();
+            }
+
+            ensurePreviewCanvas();
+            ctx.drawImage(bmp, 0, 0, bmp.width, bmp.height, 0, currentY, targetWidth, newHeight);
+            currentY += newHeight;
+        }
+
+        if (workingCanvas && currentY > 0) {
+            createPreviewSlice();
+        }
+
+        previewMeta.textContent = `معاينة: ${sliceCount} قطعة ناتجة | العرض: ${targetWidth}px | الطول الأقصى: ${maxLength}px`;
+    }
+
+    // --- Full Processing & Batch Merging ---
     startBtn.addEventListener('click', async () => {
         if (!uploadType || rawFiles.length === 0) { showAlert('لم يتم اختيار ملفات!'); return; }
-        startBtn.disabled = true; settingsDiv.classList.add('hidden');
-        processingArea.classList.remove('hidden'); resultsArea.classList.add('hidden');
-        progressBar.style.width = '0%'; progressBar.textContent = '0%';
-        progressStatus.textContent = 'تحليل المجلدات والصور...'; folderStatus.textContent = ''; etaDisplay.textContent = 'الوقت المتبقي: حساب...';
+        
+        settingsDiv.classList.add('hidden');
+        previewSection.classList.add('hidden');
+        actionSection.classList.add('hidden');
+        processingArea.classList.remove('hidden');
+        resultsArea.classList.add('hidden');
+
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        progressStatus.textContent = 'تحليل المجلدات والصور...';
+        folderStatus.textContent = '';
+        etaDisplay.textContent = 'الوقت المتبقي: حساب...';
 
         const startTime = performance.now();
         const folderGroups = {};
-        globalTotalImages = 0; globalProcessedImages = 0; globalFinalCanvasesCount = 0;
+        globalTotalImages = 0; 
+        globalProcessedImages = 0; 
+        globalFinalCanvasesCount = 0;
 
         try {
             if (uploadType === 'zip') {
-                const zip = await JSZip.loadAsync(rawFiles[0]); totalOriginalSize = 0;
+                const zip = await JSZip.loadAsync(rawFiles[0]);
+                totalOriginalSize = 0;
                 zip.forEach((relativePath, zipEntry) => {
                     if (!zipEntry.dir && /\.(jpe?g|png|webp)$/i.test(zipEntry.name)) {
                         totalOriginalSize += zipEntry._data.uncompressedSize;
@@ -326,33 +605,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             await downloadMasterZip(finalMasterZip, startTime);
-        } catch (err) { console.error(err); showAlert(`حدث خطأ: ${err.message}`, 'danger'); resetUI(); }
+        } catch (err) {
+            console.error(err);
+            showAlert(`حدث خطأ: ${err.message}`, 'danger');
+            resetUI();
+        }
     });
 
-    // ─── Folder processor ────────────────────────────────────────────────────────
     async function processSingleFolder(folderName, imageItems, finalMasterZip, startTime, currentFolderNum, totalFolders) {
         const zipFolder = finalMasterZip.folder(folderName.replace(/\/$/, ''));
-        const targetWidth = parseInt(uniformWidthSlider.value, 10);
-        const maxLength   = parseInt(maxLengthSlider.value, 10);
-        const autoSplit   = autoSplitCheckbox.checked;
-        const quality     = parseFloat(qualitySlider.value);
-        const format      = outputFormatSelect.value;
-        const fileExt     = format === 'image/webp' ? 'webp' : 'jpg';
-        const total       = imageItems.length;
+        const targetWidth = getActiveWidth();
+        const maxLength = getActiveMaxLength();
+        const autoSplit = autoSplitCheckbox.checked;
+        const quality = parseFloat(qualitySlider.value);
+        const format = outputFormatSelect.value;
+        const fileExt = format === 'image/webp' ? 'webp' : 'jpg';
+        const total = imageItems.length;
 
-        // ── Working canvas (allocated once, reused) ──────────────────────────────
         let workingCanvas = null, ctx = null, currentY = 0;
-        const folderCanvases = [];   // completed slices ready for compression
+        const folderCanvases = [];
 
         function sealCurrentCanvas() {
-            // Create a trimmed canvas at exact content height
             const trimmed = document.createElement('canvas');
             trimmed.width = targetWidth;
             trimmed.height = currentY;
             trimmed.getContext('2d', { alpha: false }).drawImage(
                 workingCanvas, 0, 0, targetWidth, currentY, 0, 0, targetWidth, currentY
             );
-            // Free the oversized working canvas immediately
             workingCanvas.width = 0; workingCanvas.height = 0;
             folderCanvases.push(trimmed);
             workingCanvas = null; ctx = null; currentY = 0;
@@ -361,26 +640,21 @@ document.addEventListener('DOMContentLoaded', () => {
         function ensureCanvas() {
             if (workingCanvas) return;
             workingCanvas = document.createElement('canvas');
-            workingCanvas.width  = targetWidth;
-            workingCanvas.height = maxLength;          // pre-allocated tall canvas
+            workingCanvas.width = targetWidth;
+            workingCanvas.height = maxLength;
             ctx = workingCanvas.getContext('2d', { alpha: false, willReadFrequently: false });
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, targetWidth, maxLength);
         }
 
-        folderStatus.textContent = `رسم صور المجلد: ${folderName.replace(/\/$/, '')} (${currentFolderNum}/${totalFolders})`;
+        folderStatus.textContent = `معالجة المجلد: ${folderName.replace(/\/$/, '')} (${currentFolderNum}/${totalFolders})`;
 
-        // ── PHASE 1: Load ALL blobs in parallel, then draw in order ─────────────
-        //   Pre-fetch blobs for the whole folder at once.
-        //   createImageBitmap() is faster than new Image() + URL.createObjectURL.
-        const PREFETCH = 40;   // fetch ahead up to 40 blobs at once
-        const DRAW_BATCH = 20; // draw in chunks so the UI stays responsive
-
-        // Pre-load blobs into ImageBitmap objects in the background
+        const PREFETCH = 30;
+        const DRAW_BATCH = 15;
         const bitmapQueue = new Array(total);
         let prefetchHead = 0;
+        let drawHead = 0;
 
-        // Kick off initial prefetch window
         const launchPrefetch = () => {
             while (prefetchHead < total && prefetchHead < drawHead + PREFETCH) {
                 const idx = prefetchHead++;
@@ -388,7 +662,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        let drawHead = 0;
         launchPrefetch();
 
         while (drawHead < total) {
@@ -407,37 +680,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 ensureCanvas();
                 ctx.drawImage(bmp, 0, 0, bmp.width, bmp.height, 0, currentY, targetWidth, newHeight);
                 currentY += newHeight;
-                bmp.close(); // free GPU/memory immediately
+                bmp.close();
                 bitmapQueue[drawHead + bi] = null;
             }
 
             drawHead = batchEnd;
             globalProcessedImages += bitmaps.length;
-            launchPrefetch(); // extend prefetch window
+            launchPrefetch();
 
-            // Update progress
             const pct = (globalProcessedImages / globalTotalImages) * 100;
-            progressBar.style.width = `${pct}%`; progressBar.textContent = `${Math.round(pct)}%`;
+            progressBar.style.width = `${pct}%`;
+            progressBar.textContent = `${Math.round(pct)}%`;
             progressStatus.textContent = `رسم صورة ${globalProcessedImages} من ${globalTotalImages}`;
             const elapsed = (performance.now() - startTime) / 1000;
             const eta = Math.round((elapsed / globalProcessedImages) * (globalTotalImages - globalProcessedImages));
-            etaDisplay.textContent = `الوقت المتبقي الكلي: ~${eta} ثانية`;
+            etaDisplay.textContent = `الوقت المتبقي: ~${eta} ثانية`;
 
             await yieldToUI();
         }
 
-        // Seal last canvas
         if (workingCanvas && currentY > 0) sealCurrentCanvas();
 
-        // ── PHASE 2: Compress ALL canvases in parallel ───────────────────────────
-        folderStatus.textContent = `ضغط صور المجلد: ${folderName.replace(/\/$/, '')}...`;
+        folderStatus.textContent = `ضغط صور مجلد: ${folderName.replace(/\/$/, '')}...`;
         progressStatus.textContent = `جاري التحويل إلى ${format === 'image/webp' ? 'WebP' : 'JPEG'}...`;
         await yieldToUI();
 
         const blobResults = await Promise.all(
             folderCanvases.map((canvas, i) =>
                 new Promise(resolve => canvas.toBlob(blob => {
-                    canvas.width = 0; canvas.height = 0; // free memory as soon as blob is ready
+                    canvas.width = 0; canvas.height = 0;
                     resolve({ blob, i });
                 }, format, quality))
             )
@@ -449,7 +720,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ─── Zip download ────────────────────────────────────────────────────────────
     async function downloadMasterZip(finalMasterZip, startTime) {
         progressStatus.textContent = 'تجهيز ملف التحميل النهائي...';
         folderStatus.textContent = 'لحظات ويتم التحميل...';
@@ -459,25 +729,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(content);
         link.download = outputFilename;
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
         showResults((performance.now() - startTime) / 1000, content.size);
     }
 
-    // ─── Results ─────────────────────────────────────────────────────────────────
     function showResults(timeTaken, finalZipSize) {
-        processingArea.classList.add('hidden'); resultsArea.classList.remove('hidden');
+        processingArea.classList.add('hidden');
+        resultsArea.classList.remove('hidden');
         document.querySelector('#results-area .stats-grid').innerHTML = `
-            <div class="stat-item"><strong>الصور المرفوعة</strong><span>${globalTotalImages}</span></div>
-            <div class="stat-item"><strong>الصور الناتجة</strong><span>${globalFinalCanvasesCount}</span></div>
+            <div class="stat-item"><strong>الصور الأصلية</strong><span>${globalTotalImages}</span></div>
+            <div class="stat-item"><strong>القطع الناتجة</strong><span>${globalFinalCanvasesCount}</span></div>
             <div class="stat-item"><strong>الحجم الأصلي</strong><span>${formatBytes(totalOriginalSize)}</span></div>
-            <div class="stat-item" style="border-left-color:var(--warning-color)"><strong>حجم الملف النهائي</strong><span style="color:var(--warning-color)">${formatBytes(finalZipSize)}</span></div>
-            <div class="stat-item" style="grid-column:1/-1"><strong>الوقت المستغرق الإجمالي</strong><span>${timeTaken.toFixed(2)}s</span></div>`;
-        showAlert('تم إنشاء الملف بنجاح!', 'success');
+            <div class="stat-item" style="border-left-color:var(--warning-color)"><strong>الحجم النهائي</strong><span style="color:var(--warning-color)">${formatBytes(finalZipSize)}</span></div>
+            <div class="stat-item" style="grid-column:1/-1"><strong>الوقت المستغرق</strong><span>${timeTaken.toFixed(2)} ثانية</span></div>`;
+        showAlert('تم إنشاء وحفظ الملف بنجاح!', 'success');
         resetUI();
+    }
+
+    function resetUI() {
+        settingsDiv.classList.remove('hidden');
+        previewSection.classList.remove('hidden');
+        actionSection.classList.remove('hidden');
     }
 });
 </script>
-
 </body>
 </html>
