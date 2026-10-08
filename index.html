@@ -63,7 +63,7 @@
             border-radius: 6px; background-color: var(--input-bg); color: var(--text-color); 
             font-size: 0.95rem; text-align: center; font-weight: bold;
         }
-        .setting-group select {
+        .setting-group select, .folder-select {
             width: 100%; padding: 0.55rem; background-color: var(--input-bg); color: var(--text-color); 
             border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem;
         }
@@ -77,12 +77,13 @@
             padding: 1.5rem; background-color: var(--bg-color);
         }
         .preview-header-bar {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;
         }
         .preview-header-bar h3 { margin: 0; font-size: 1.2rem; color: var(--text-color); }
+        .preview-controls-right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
         .preview-counter {
             font-size: 0.95rem; font-weight: bold; background: var(--primary-color); color: #fff; 
-            padding: 4px 12px; border-radius: 20px;
+            padding: 4px 12px; border-radius: 20px; white-space: nowrap;
         }
         
         .viewer-container {
@@ -201,7 +202,7 @@
             <div id="uploader">
                 <div class="drop-zone" id="dropZone">
                     <svg class="icon"><use href="#icon-upload"></use></svg>
-                    <p>اسحب وأفلت <b>ملف .zip (يحتوي مجلدات/صور)</b> أو <b>مجموعة صور</b> هنا<br>أو <label for="fileInput" class="file-input-label">تصفح جهازك</label></p>
+                    <p>اسحب وأفلت <b>ملف .zip (يحتوي مجلدات/فصول)</b> أو <b>مجموعة صور</b> هنا<br>أو <label for="fileInput" class="file-input-label">تصفح جهازك</label></p>
                     <input type="file" id="fileInput" accept=".zip, image/jpeg, image/png, image/webp" multiple>
                 </div>
                 <div id="file-info" class="hidden" style="margin-top: 1rem; font-weight: bold;"></div>
@@ -254,11 +255,18 @@
                 </div>
             </div>
 
-            <!-- Interactive Slider Preview Section (All images + Prev/Next buttons) -->
+            <!-- Interactive Slider Preview Section -->
             <div id="preview-section" class="hidden">
                 <div class="preview-header-bar">
-                    <h3>معاينة تفاعلية لجميع الصور (تصفح يمين/يسار)</h3>
-                    <div class="preview-counter" id="previewCounter">صورة 0 من 0</div>
+                    <h3>معاينة تفاعلية (تقليب يمين/يسار)</h3>
+                    <div class="preview-controls-right">
+                        <!-- Folder Switcher for Preview -->
+                        <div id="previewFolderWrapper" class="hidden" style="display:flex; align-items:center; gap:0.4rem;">
+                            <label for="previewFolderSelect" style="font-size:0.85rem; font-weight:bold;">المجلد:</label>
+                            <select id="previewFolderSelect" class="folder-select" style="padding:0.25rem 0.6rem; font-size:0.85rem; width:auto;"></select>
+                        </div>
+                        <div class="preview-counter" id="previewCounter">صورة 0 من 0</div>
+                    </div>
                 </div>
 
                 <div class="viewer-container">
@@ -299,7 +307,7 @@
             <div id="results-area" class="hidden">
                 <h3><svg class="icon"><use href="#icon-check"></use></svg> اكتملت العملية بنجاح!</h3>
                 <div class="stats-grid"></div>
-                <p style="margin-top: 1.5rem;">تم تجميع الصور وحفظها في ملف ZIP بنجاح.</p>
+                <p style="margin-top: 1.5rem;">تم تجميع كل مجلد بشكل مستقل وحفظه داخل مجلده في ملف ZIP بنجاح.</p>
             </div>
         </main>
     </div>
@@ -341,6 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewCounter = document.getElementById('previewCounter');
     const prevSliceBtn = document.getElementById('prevSliceBtn');
     const nextSliceBtn = document.getElementById('nextSliceBtn');
+    const previewFolderWrapper = document.getElementById('previewFolderWrapper');
+    const previewFolderSelect = document.getElementById('previewFolderSelect');
 
     let uploadType = null;
     let rawFiles = [];
@@ -350,8 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let globalProcessedImages = 0;
     let globalFinalCanvasesCount = 0;
 
-    // Full preview cache (Contains ALL images loaded)
-    let allPreviewBitmaps = []; 
+    // Folder groups dictionary: { folderName: [ { name, bmp } ] }
+    let previewFolderGroups = {};
+    let activePreviewFolder = null;
     let generatedSlices = []; 
     let currentSliceIndex = 0;
     let previewDebounceTimer = null;
@@ -454,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleFiles(files) {
         rawFiles = Array.from(files);
         totalOriginalSize = 0;
-        allPreviewBitmaps = [];
+        previewFolderGroups = {};
 
         if (rawFiles.length === 1 && rawFiles[0].type === 'application/zip') {
             uploadType = 'zip';
@@ -462,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
             outputFilename = `${rawFiles[0].name.replace('.zip', '')}_combined.zip`;
             fileInfo.textContent = `ملف ZIP: ${rawFiles[0].name} (${formatBytes(totalOriginalSize)})`;
             showControls();
-            await loadAllBitmapsFromZip(rawFiles[0]);
+            await loadBitmapsFromZip(rawFiles[0]);
         } else {
             rawFiles = rawFiles.filter(f => /\.(jpe?g|png|webp)$/i.test(f.name));
             if (rawFiles.length > 0) {
@@ -471,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 rawFiles.forEach(f => { totalOriginalSize += f.size; });
                 fileInfo.textContent = `تم تحديد ${rawFiles.length} صورة (${formatBytes(totalOriginalSize)})`;
                 showControls();
-                await loadAllBitmapsFromImages(rawFiles);
+                await loadBitmapsFromImages(rawFiles);
             } else {
                 showAlert('الرجاء اختيار ملف .zip صالح أو صور صالحة.', 'warning');
                 resetState();
@@ -489,44 +500,89 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetState() {
-        uploadType = null; rawFiles = []; allPreviewBitmaps = []; generatedSlices = [];
+        uploadType = null; rawFiles = []; previewFolderGroups = {}; generatedSlices = [];
         fileInfo.classList.add('hidden'); settingsDiv.classList.add('hidden');
         previewSection.classList.add('hidden'); actionSection.classList.add('hidden');
     }
 
-    // --- Loading ALL Images without exclusion for the preview ---
-    async function loadAllBitmapsFromImages(files) {
-        previewCounter.textContent = 'جاري قراءة جميع الصور...';
+    // --- Load Bitmaps into Isolated Folder Groups ---
+    async function loadBitmapsFromImages(files) {
+        previewCounter.textContent = 'جاري قراءة الصور...';
         const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
         
-        allPreviewBitmaps = await Promise.all(sorted.map(async f => {
+        const bitmaps = await Promise.all(sorted.map(async f => {
             const bmp = await createImageBitmap(f);
-            return bmp;
+            return { name: f.name, bmp };
         }));
-        triggerLivePreview();
+
+        previewFolderGroups = { 'الكل': bitmaps };
+        setupFolderSelector();
     }
 
-    async function loadAllBitmapsFromZip(zipFile) {
-        previewCounter.textContent = 'جاري استخراج وقراءة جميع الصور من ZIP...';
+    async function loadBitmapsFromZip(zipFile) {
+        previewCounter.textContent = 'جاري استخراج وفصل مجلدات الـ ZIP...';
         const zip = await JSZip.loadAsync(zipFile);
-        const entries = [];
-        zip.forEach((path, entry) => {
+        
+        const tempGroups = {};
+        zip.forEach((relativePath, entry) => {
             if (!entry.dir && /\.(jpe?g|png|webp)$/i.test(entry.name)) {
-                entries.push(entry);
+                const lastSlash = relativePath.lastIndexOf('/');
+                const folder = lastSlash !== -1 ? relativePath.substring(0, lastSlash) : 'المجلد الرئيسي';
+                if (!tempGroups[folder]) tempGroups[folder] = [];
+                tempGroups[folder].push(entry);
             }
         });
-        entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-        
-        allPreviewBitmaps = await Promise.all(entries.map(async entry => {
-            const blob = await entry.async('blob');
-            return await createImageBitmap(blob);
-        }));
+
+        const folderNames = Object.keys(tempGroups).sort();
+        previewFolderGroups = {};
+
+        for (const fName of folderNames) {
+            tempGroups[fName].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+            const loaded = await Promise.all(tempGroups[fName].map(async entry => {
+                const blob = await entry.async('blob');
+                const bmp = await createImageBitmap(blob);
+                return { name: entry.name, bmp };
+            }));
+            previewFolderGroups[fName] = loaded;
+        }
+
+        setupFolderSelector();
+    }
+
+    function setupFolderSelector() {
+        const folders = Object.keys(previewFolderGroups);
+        previewFolderSelect.innerHTML = '';
+
+        if (folders.length > 1) {
+            previewFolderWrapper.classList.remove('hidden');
+            previewFolderWrapper.style.display = 'flex';
+            folders.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = `${f} (${previewFolderGroups[f].length} صورة)`;
+                previewFolderSelect.appendChild(opt);
+            });
+            activePreviewFolder = folders[0];
+            previewFolderSelect.value = activePreviewFolder;
+        } else {
+            previewFolderWrapper.classList.add('hidden');
+            previewFolderWrapper.style.display = 'none';
+            activePreviewFolder = folders[0] || null;
+        }
+
+        previewFolderSelect.onchange = () => {
+            activePreviewFolder = previewFolderSelect.value;
+            currentSliceIndex = 0;
+            triggerLivePreview();
+        };
+
+        currentSliceIndex = 0;
         triggerLivePreview();
     }
 
-    // --- Interactive Live Slicing & Slider Engine ---
+    // --- Interactive Live Slicing for Active Folder ---
     function triggerLivePreview() {
-        if (!allPreviewBitmaps || allPreviewBitmaps.length === 0) return;
+        if (!previewFolderGroups || !activePreviewFolder || !previewFolderGroups[activePreviewFolder]) return;
         clearTimeout(previewDebounceTimer);
         previewDebounceTimer = setTimeout(recalculateSlicesAndRender, 100);
     }
@@ -535,6 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetWidth = getActiveWidth();
         const maxLength = getActiveMaxLength();
         const autoSplit = autoSplitCheckbox.checked;
+        const currentFolderItems = previewFolderGroups[activePreviewFolder] || [];
 
         generatedSlices = [];
         let workingCanvas = null;
@@ -567,9 +624,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillRect(0, 0, targetWidth, maxLength);
         }
 
-        // Loop through ALL bitmaps and slice them precisely
-        for (let i = 0; i < allPreviewBitmaps.length; i++) {
-            const bmp = allPreviewBitmaps[i];
+        // Loop only through items of the CURRENT ACTIVE FOLDER
+        for (let i = 0; i < currentFolderItems.length; i++) {
+            const { bmp } = currentFolderItems[i];
             const newHeight = Math.round(targetWidth * bmp.height / bmp.width);
 
             if (autoSplit && currentY > 0 && (currentY + newHeight) > maxLength) {
@@ -607,7 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         previewCounter.textContent = `صورة ${currentSliceIndex + 1} من ${generatedSlices.length} (${slice.width}×${slice.height}px)`;
 
-        // RTL: Prev is Right, Next is Left
+        // RTL navigation
         prevSliceBtn.disabled = (currentSliceIndex === 0);
         nextSliceBtn.disabled = (currentSliceIndex === generatedSlices.length - 1);
 
@@ -663,17 +720,16 @@ document.addEventListener('DOMContentLoaded', () => {
     prevSliceBtn.addEventListener('click', prevSlice);
     nextSliceBtn.addEventListener('click', nextSlice);
 
-    // Keyboard Arrow Controls
     window.addEventListener('keydown', (e) => {
         if (previewSection.classList.contains('hidden')) return;
         if (e.key === 'ArrowRight') {
-            prevSlice(); // Right is previous in RTL
+            prevSlice();
         } else if (e.key === 'ArrowLeft') {
-            nextSlice(); // Left is next in RTL
+            nextSlice();
         }
     });
 
-    // --- Final Compression & Full Batch Download ---
+    // --- Final Compression & Isolated Folder Merging ---
     startBtn.addEventListener('click', async () => {
         if (!uploadType || rawFiles.length === 0) { showAlert('لم يتم اختيار ملفات!'); return; }
         
@@ -685,7 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         progressBar.style.width = '0%';
         progressBar.textContent = '0%';
-        progressStatus.textContent = 'تحليل المجلدات والصور...';
+        progressStatus.textContent = 'فصل المجلدات وتجهيز الصور...';
         folderStatus.textContent = '';
         etaDisplay.textContent = 'الوقت المتبقي: حساب...';
 
@@ -703,14 +759,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!zipEntry.dir && /\.(jpe?g|png|webp)$/i.test(zipEntry.name)) {
                         totalOriginalSize += zipEntry._data.uncompressedSize;
                         const lastSlash = relativePath.lastIndexOf('/');
-                        const folder = lastSlash !== -1 ? relativePath.substring(0, lastSlash + 1) : 'Root/';
+                        // Preserve exact relative folder path
+                        const folder = lastSlash !== -1 ? relativePath.substring(0, lastSlash) : '';
                         if (!folderGroups[folder]) folderGroups[folder] = [];
                         folderGroups[folder].push({ name: zipEntry.name, getBlob: () => zipEntry.async('blob') });
                         globalTotalImages++;
                     }
                 });
             } else {
-                folderGroups['Root/'] = rawFiles.map(f => ({ name: f.name, getBlob: () => Promise.resolve(f) }));
+                folderGroups[''] = rawFiles.map(f => ({ name: f.name, getBlob: () => Promise.resolve(f) }));
                 globalTotalImages = rawFiles.length;
             }
 
@@ -719,10 +776,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalMasterZip = new JSZip();
 
             for (let fi = 0; fi < sortedFolderNames.length; fi++) {
-                const folderName = sortedFolderNames[fi];
-                const items = folderGroups[folderName];
+                const folderPath = sortedFolderNames[fi];
+                const items = folderGroups[folderPath];
                 items.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-                await processSingleFolder(folderName, items, finalMasterZip, startTime, fi + 1, sortedFolderNames.length);
+                await processSingleFolder(folderPath, items, finalMasterZip, startTime, fi + 1, sortedFolderNames.length);
             }
 
             await downloadMasterZip(finalMasterZip, startTime);
@@ -733,8 +790,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    async function processSingleFolder(folderName, imageItems, finalMasterZip, startTime, currentFolderNum, totalFolders) {
-        const zipFolder = finalMasterZip.folder(folderName.replace(/\/$/, ''));
+    async function processSingleFolder(folderPath, imageItems, finalMasterZip, startTime, currentFolderNum, totalFolders) {
+        // Create isolated folder inside ZIP (or write to root if no subfolder)
+        const zipFolder = folderPath ? finalMasterZip.folder(folderPath) : finalMasterZip;
         const targetWidth = getActiveWidth();
         const maxLength = getActiveMaxLength();
         const autoSplit = autoSplitCheckbox.checked;
@@ -768,7 +826,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillRect(0, 0, targetWidth, maxLength);
         }
 
-        folderStatus.textContent = `معالجة المجلد: ${folderName.replace(/\/$/, '')} (${currentFolderNum}/${totalFolders})`;
+        const displayName = folderPath || 'المجلد الرئيسي';
+        folderStatus.textContent = `معالجة مجلد منفصل: ${displayName} (${currentFolderNum}/${totalFolders})`;
 
         const PREFETCH = 30;
         const DRAW_BATCH = 15;
@@ -820,9 +879,10 @@ document.addEventListener('DOMContentLoaded', () => {
             await yieldToUI();
         }
 
+        // Seal remaining canvas for THIS folder strictly
         if (workingCanvas && currentY > 0) sealCurrentCanvas();
 
-        folderStatus.textContent = `ضغط صور مجلد: ${folderName.replace(/\/$/, '')}...`;
+        folderStatus.textContent = `ضغط صور مجلد: ${displayName}...`;
         progressStatus.textContent = `جاري التحويل إلى ${format === 'image/webp' ? 'WebP' : 'JPEG'}...`;
         await yieldToUI();
 
@@ -866,7 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="stat-item"><strong>الحجم الأصلي</strong><span>${formatBytes(totalOriginalSize)}</span></div>
             <div class="stat-item" style="border-left-color:var(--warning-color)"><strong>الحجم النهائي</strong><span style="color:var(--warning-color)">${formatBytes(finalZipSize)}</span></div>
             <div class="stat-item" style="grid-column:1/-1"><strong>الوقت المستغرق</strong><span>${timeTaken.toFixed(2)} ثانية</span></div>`;
-        showAlert('تم إنشاء وحفظ الملف بنجاح!', 'success');
+        showAlert('تم حفظ كل مجلد بشكل مستقل وبنجاح!', 'success');
         resetUI();
     }
 
