@@ -71,19 +71,34 @@
         .setting-group input[type="range"] { flex: 1; margin: 0; cursor: pointer; }
         .range-value { font-weight: bold; color: var(--primary-color); min-width: 65px; text-align: left; }
 
-        .hardware-limit-hint {
-            font-size: 0.8rem; color: #888; margin-top: 2px;
-        }
+        .hardware-limit-hint { font-size: 0.8rem; color: #888; margin-top: 2px; }
 
-        /* --- Interactive Slider & Carousel Preview --- */
+        /* --- Collapsible Preview Accordion --- */
         #preview-section {
             margin-top: 2.5rem; border: 1px solid var(--border-color); border-radius: 12px; 
-            padding: 1.5rem; background-color: var(--bg-color);
+            background-color: var(--bg-color); overflow: hidden; transition: all 0.3s ease;
         }
-        .preview-header-bar {
+        .preview-toggle-bar {
+            padding: 1rem 1.2rem; display: flex; justify-content: space-between; align-items: center; 
+            cursor: pointer; user-select: none; background: rgba(0,0,0,0.02); transition: background-color 0.2s;
+        }
+        .preview-toggle-bar:hover { background: rgba(0, 123, 255, 0.05); }
+        .preview-title-wrap { display: flex; align-items: center; gap: 0.75rem; }
+        .preview-title-wrap h3 { margin: 0; font-size: 1.15rem; color: var(--text-color); }
+        
+        .toggle-arrow {
+            width: 22px; height: 22px; fill: var(--text-color); transition: transform 0.3s ease;
+        }
+        #preview-section.expanded .toggle-arrow { transform: rotate(180deg); }
+
+        .preview-content {
+            display: none; padding: 1.2rem; border-top: 1px solid var(--border-color);
+        }
+        #preview-section.expanded .preview-content { display: block; }
+
+        .preview-sub-header {
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;
         }
-        .preview-header-bar h3 { margin: 0; font-size: 1.2rem; color: var(--text-color); }
         .preview-controls-right { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
         .preview-counter {
             font-size: 0.95rem; font-weight: bold; background: var(--primary-color); color: #fff; 
@@ -112,7 +127,6 @@
             display: block; width: auto; height: auto; max-width: none; max-height: none; background: #fff;
         }
         
-        /* Navigation Arrows */
         .nav-btn {
             position: absolute; top: 50%; transform: translateY(-50%);
             background-color: rgba(0, 0, 0, 0.65); color: #fff; border: 2px solid rgba(255, 255, 255, 0.3);
@@ -125,7 +139,6 @@
         .nav-btn.next-btn { left: 15px; }
         .nav-btn svg { width: 22px; height: 22px; fill: white; }
 
-        /* Thumbnails strip */
         .thumbnails-strip {
             display: flex; gap: 8px; overflow-x: auto; padding: 0.8rem 0; margin-top: 1rem;
             scrollbar-width: thin;
@@ -195,6 +208,7 @@
       <symbol id="icon-sun" viewBox="0 0 24 24"><path d="M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5S14.76,7,12,7z M2,13h2c0.55,0,1-0.45,1-1s-0.45-1-1-1H2c-0.55,0-1,0.45-1,1 S1.45,13,2,13z M20,13h2c0.55,0,1-0.45,1-1s-0.45-1-1-1h-2c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1 V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1S11,19.45,11,20z M5.99,4.58 c-0.39-0.39-1.02-0.39-1.41,0s-0.39,1.02,0,1.41l1.06,1.06c0.39,0.39,1.02,0.39,1.41,0s0.39-1.02,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.02-0.39-1.41,0s-0.39,1.02,0,1.41l1.06,1.06c0.39,0.39,1.02,0.39,1.41,0s0.39-1.02,0-1.41L18.36,16.95z M19.42,5.99 c0.39-0.39,0.39-1.02,0-1.41s-1.02-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.02,0,1.41s1.02,0.39,1.41,0L19.42,5.99z M7.05,18.36 c0.39-0.39,0.39-1.02,0-1.41s-1.02-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.02,0,1.41s1.02,0.39,1.41,0L7.05,18.36z"/></symbol>
       <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></symbol>
       <symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="M15.41 7.41L10.83 12l4.58 4.59L14 18l-6-6 6-6 1.41 1.41z"/></symbol>
+      <symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></symbol>
     </svg>
     
     <div id="alert-box">
@@ -230,7 +244,6 @@
                     </select>
                 </div>
 
-                <!-- Custom Width Control -->
                 <div class="setting-group">
                     <div class="setting-header">
                         <label for="uniformWidth">العرض الموحد (بكسل)</label>
@@ -242,7 +255,6 @@
                     </div>
                 </div>
 
-                <!-- Custom Height/Length Control with Hardware Safety Detection -->
                 <div class="setting-group">
                     <div class="setting-header">
                         <label for="maxLength">الطول الأقصى للصورة (بكسل)</label>
@@ -252,7 +264,7 @@
                         <input type="range" id="maxLength" min="500" max="32000" value="10000" step="10">
                         <span class="range-value" id="maxLengthValue">10000px</span>
                     </div>
-                    <div class="hardware-limit-hint" id="hardwareLimitHint">جاري قياس أقصى طول آمن يدعمه متصفحك...</div>
+                    <div class="hardware-limit-hint" id="hardwareLimitHint">جاري فحص قدرة المتصفح...</div>
                 </div>
 
                 <div class="setting-group">
@@ -269,38 +281,42 @@
                 </div>
             </div>
 
-            <!-- Interactive Slider Preview Section -->
+            <!-- Collapsible Preview Section (Hidden by default to prevent freezing) -->
             <div id="preview-section" class="hidden">
-                <div class="preview-header-bar">
-                    <h3>معاينة تفاعلية (تقليب يمين/يسار)</h3>
-                    <div class="preview-controls-right">
-                        <button type="button" class="zoom-toggle-btn" id="zoomToggleBtn">الحجم الحقيقي: 100%</button>
-                        <div id="previewFolderWrapper" class="hidden" style="display:flex; align-items:center; gap:0.4rem;">
-                            <label for="previewFolderSelect" style="font-size:0.85rem; font-weight:bold;">المجلد:</label>
-                            <select id="previewFolderSelect" class="folder-select" style="padding:0.25rem 0.6rem; font-size:0.85rem; width:auto;"></select>
+                <div class="preview-toggle-bar" id="previewToggleBar">
+                    <div class="preview-title-wrap">
+                        <svg class="toggle-arrow" id="toggleArrow"><use href="#icon-chevron-down"></use></svg>
+                        <h3 id="previewAccordionTitle">عرض ومعاينة الصور المدمجة (انقر للفتح)</h3>
+                    </div>
+                    <span id="previewSummaryTag" style="font-size:0.85rem; opacity:0.8;">معاينة مغلقة (لتوفير الأداء والسرعة)</span>
+                </div>
+
+                <div class="preview-content" id="previewContent">
+                    <div class="preview-sub-header">
+                        <div class="preview-controls-right">
+                            <button type="button" class="zoom-toggle-btn" id="zoomToggleBtn">الحجم الحقيقي: 100%</button>
+                            <div id="previewFolderWrapper" class="hidden" style="display:flex; align-items:center; gap:0.4rem;">
+                                <label for="previewFolderSelect" style="font-size:0.85rem; font-weight:bold;">المجلد:</label>
+                                <select id="previewFolderSelect" class="folder-select" style="padding:0.25rem 0.6rem; font-size:0.85rem; width:auto;"></select>
+                            </div>
+                            <div class="preview-counter" id="previewCounter">صورة 0 من 0</div>
                         </div>
-                        <div class="preview-counter" id="previewCounter">صورة 0 من 0</div>
-                    </div>
-                </div>
-
-                <div class="viewer-container">
-                    <!-- Right Button (Previous in RTL) -->
-                    <button class="nav-btn prev-btn" id="prevSliceBtn" title="السابق (سهم يمين)">
-                        <svg><use href="#icon-arrow-right"></use></svg>
-                    </button>
-                    
-                    <div class="main-canvas-wrapper fit-mode" id="mainCanvasWrapper">
-                        <!-- Currently active slice canvas is injected here -->
                     </div>
 
-                    <!-- Left Button (Next in RTL) -->
-                    <button class="nav-btn next-btn" id="nextSliceBtn" title="التالي (سهم يسار)">
-                        <svg><use href="#icon-arrow-left"></use></svg>
-                    </button>
-                </div>
+                    <div class="viewer-container">
+                        <button class="nav-btn prev-btn" id="prevSliceBtn" title="السابق (سهم يمين)">
+                            <svg><use href="#icon-arrow-right"></use></svg>
+                        </button>
+                        
+                        <div class="main-canvas-wrapper fit-mode" id="mainCanvasWrapper"></div>
 
-                <!-- Thumbnails strip -->
-                <div class="thumbnails-strip" id="thumbnailsStrip"></div>
+                        <button class="nav-btn next-btn" id="nextSliceBtn" title="التالي (سهم يسار)">
+                            <svg><use href="#icon-arrow-left"></use></svg>
+                        </button>
+                    </div>
+
+                    <div class="thumbnails-strip" id="thumbnailsStrip"></div>
+                </div>
             </div>
 
             <div id="action-section" class="hidden">
@@ -334,6 +350,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById('start-btn');
     const settingsDiv = document.getElementById('settings');
     const previewSection = document.getElementById('preview-section');
+    const previewToggleBar = document.getElementById('previewToggleBar');
+    const previewAccordionTitle = document.getElementById('previewAccordionTitle');
+    const previewSummaryTag = document.getElementById('previewSummaryTag');
     const actionSection = document.getElementById('action-section');
     const processingArea = document.getElementById('processing-area');
     const resultsArea = document.getElementById('results-area');
@@ -382,9 +401,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSliceIndex = 0;
     let previewDebounceTimer = null;
     let isActualZoom = false;
+    let isPreviewExpanded = false; // Closed by default to save browser RAM
 
     // --- Dynamic Hardware Canvas Limit Detector ---
-    // Test the browser's GPU/canvas memory ceiling to prevent silent clipping/cropping!
     function detectMaxCanvasHeight(width = 750) {
         const testHeights = [65535, 32767, 24000, 16384, 12000, 8192];
         const canvas = document.createElement('canvas');
@@ -400,18 +419,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     canvas.width = 0; canvas.height = 0;
                     return h;
                 }
-            } catch (e) {
-                // Try lower height
-            }
+            } catch (e) {}
         }
-        return 16384; // Standard safe fallback
+        return 16384;
     }
 
     const browserMaxSafeHeight = detectMaxCanvasHeight(750);
     hardwareLimitHint.textContent = `أقصى طول متواصل يدعمه جهازك دون تلف للصور: ~${browserMaxSafeHeight.toLocaleString()} بكسل`;
     maxLengthSlider.max = Math.min(browserMaxSafeHeight, 35000);
 
-    // --- Utilities ---
+    // --- Accordion Toggle Mechanism (Freezes/Unfreezes rendering) ---
+    previewToggleBar.addEventListener('click', () => {
+        isPreviewExpanded = !isPreviewExpanded;
+        previewSection.classList.toggle('expanded', isPreviewExpanded);
+
+        if (isPreviewExpanded) {
+            previewAccordionTitle.textContent = 'معاينة الصور (انقر للإخفاء وتوفير الذاكرة)';
+            previewSummaryTag.textContent = 'المعاينة نشطة الآن';
+            triggerLivePreview();
+        } else {
+            previewAccordionTitle.textContent = 'عرض ومعاينة الصور المدمجة (انقر للفتح)';
+            previewSummaryTag.textContent = 'تم إخفاء المعاينة لتسريع المتصفح';
+            // Clear generated preview canvases from RAM immediately
+            generatedSlices.forEach(s => { s.canvas.width = 0; s.canvas.height = 0; });
+            generatedSlices = [];
+            mainCanvasWrapper.innerHTML = '';
+            thumbnailsStrip.innerHTML = '';
+        }
+    });
+
     const showAlert = (message, type = 'danger', duration = 4000) => {
         const alertBox = document.getElementById('alert-box');
         const alertMessage = document.getElementById('alert-message');
@@ -431,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const yieldToUI = () => new Promise(r => setTimeout(r, 0));
 
-    // --- Dark Mode ---
+    // Dark Mode
     const applyDarkMode = (isDark) => {
         document.documentElement.classList.toggle('dark-mode', isDark);
         localStorage.setItem('darkMode', isDark);
@@ -455,7 +491,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Dimension Sync & Independent Controls ---
     function getActiveWidth() {
         const val = parseInt(customWidthInput.value, 10);
         return isNaN(val) || val <= 0 ? 750 : val;
@@ -464,10 +499,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function getActiveMaxLength() {
         let val = parseInt(customLengthInput.value, 10);
         if (isNaN(val) || val <= 0) val = 10000;
-        
-        // Safety guard against hardware overflow which destroys manga pages
         if (val > browserMaxSafeHeight) {
-            showAlert(`تنبيه: متصفحك يقص أي صورة تتجاوز ${browserMaxSafeHeight}px. تم ضبط الطول على هذا الحد لمنع ضياع الصفحات.`, 'warning', 5000);
+            showAlert(`تنبيه: متصفحك يقص أي صورة تتجاوز ${browserMaxSafeHeight}px. تم ضبط الطول على هذا الحد تلقائياً.`, 'warning', 5000);
             val = browserMaxSafeHeight;
             customLengthInput.value = val;
             maxLengthValue.textContent = `${val}px`;
@@ -480,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = e.target.value;
         customWidthInput.value = val;
         uniformWidthValue.textContent = `${val}px`;
-        triggerLivePreview();
+        if (isPreviewExpanded) triggerLivePreview();
     });
 
     customWidthInput.addEventListener('input', () => {
@@ -490,16 +523,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (val >= parseInt(uniformWidthSlider.min) && val <= parseInt(uniformWidthSlider.max)) {
                 uniformWidthSlider.value = val;
             }
-            triggerLivePreview();
+            if (isPreviewExpanded) triggerLivePreview();
         }
     });
 
-    // Length inputs (Pixel-perfect)
+    // Length inputs
     maxLengthSlider.addEventListener('input', (e) => {
         const val = e.target.value;
         customLengthInput.value = val;
         maxLengthValue.textContent = `${val}px`;
-        triggerLivePreview();
+        if (isPreviewExpanded) triggerLivePreview();
     });
 
     customLengthInput.addEventListener('input', () => {
@@ -509,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (val >= parseInt(maxLengthSlider.min) && val <= parseInt(maxLengthSlider.max)) {
                 maxLengthSlider.value = val;
             }
-            triggerLivePreview();
+            if (isPreviewExpanded) triggerLivePreview();
         }
     });
 
@@ -517,9 +550,11 @@ document.addEventListener('DOMContentLoaded', () => {
         qualityValue.textContent = `${Math.round(e.target.value * 100)}%`;
     });
 
-    autoSplitCheckbox.addEventListener('change', triggerLivePreview);
+    autoSplitCheckbox.addEventListener('change', () => {
+        if (isPreviewExpanded) triggerLivePreview();
+    });
 
-    // --- Drag & Drop ---
+    // Drag and Drop
     const setupDragAndDrop = () => {
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); });
@@ -572,7 +607,6 @@ document.addEventListener('DOMContentLoaded', () => {
         previewSection.classList.add('hidden'); actionSection.classList.add('hidden');
     }
 
-    // --- Loading Bitmaps into Isolated Groups ---
     async function loadBitmapsFromImages(files) {
         previewCounter.textContent = 'جاري قراءة الصور...';
         const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
@@ -640,26 +674,29 @@ document.addEventListener('DOMContentLoaded', () => {
         previewFolderSelect.onchange = () => {
             activePreviewFolder = previewFolderSelect.value;
             currentSliceIndex = 0;
-            triggerLivePreview();
+            if (isPreviewExpanded) triggerLivePreview();
         };
 
         currentSliceIndex = 0;
-        triggerLivePreview();
+        if (isPreviewExpanded) triggerLivePreview();
     }
 
     // --- Mathematical Exact Slicing Engine (Live Preview) ---
     function triggerLivePreview() {
+        if (!isPreviewExpanded) return; // Prevent freezing when closed
         if (!previewFolderGroups || !activePreviewFolder || !previewFolderGroups[activePreviewFolder]) return;
         clearTimeout(previewDebounceTimer);
         previewDebounceTimer = setTimeout(recalculateSlicesAndRender, 60);
     }
 
     function recalculateSlicesAndRender() {
+        if (!isPreviewExpanded) return;
         const targetWidth = getActiveWidth();
         const maxLength = getActiveMaxLength();
         const autoSplit = autoSplitCheckbox.checked;
         const currentFolderItems = previewFolderGroups[activePreviewFolder] || [];
 
+        generatedSlices.forEach(s => { s.canvas.width = 0; s.canvas.height = 0; });
         generatedSlices = [];
         let workingCanvas = null;
         let ctx = null;
@@ -677,9 +714,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 width: targetWidth,
                 height: currentY
             });
-            workingCanvas = null;
-            ctx = null;
-            currentY = 0;
+            workingCanvas.width = 0; workingCanvas.height = 0;
+            workingCanvas = null; ctx = null; currentY = 0;
         }
 
         function ensureWorkingCanvas() {
@@ -692,7 +728,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillRect(0, 0, targetWidth, maxLength);
         }
 
-        // Exact sub-pixel loss prevention: calculates exact source coordinates without missing pixels
         for (let i = 0; i < currentFolderItems.length; i++) {
             const { bmp } = currentFolderItems[i];
             const scale = targetWidth / bmp.width;
@@ -790,7 +825,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Prev / Next Navigation ---
     function prevSlice() {
         if (currentSliceIndex > 0) {
             currentSliceIndex--;
@@ -809,7 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
     nextSliceBtn.addEventListener('click', nextSlice);
 
     window.addEventListener('keydown', (e) => {
-        if (previewSection.classList.contains('hidden')) return;
+        if (!isPreviewExpanded || previewSection.classList.contains('hidden')) return;
         if (e.key === 'ArrowRight') {
             prevSlice();
         } else if (e.key === 'ArrowLeft') {
@@ -997,11 +1031,10 @@ document.addEventListener('DOMContentLoaded', () => {
         progressStatus.textContent = `جاري التحويل إلى ${format === 'image/webp' ? 'WebP' : 'JPEG'}...`;
         await yieldToUI();
 
-        // Convert and push without leaking canvas memory
         for (let i = 0; i < folderCanvases.length; i++) {
             const canvas = folderCanvases[i];
             const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
-            canvas.width = 0; canvas.height = 0; // free memory
+            canvas.width = 0; canvas.height = 0;
             zipFolder.file(`${String(i + 1).padStart(3, '0')}.${fileExt}`, blob, { compression: 'STORE' });
             globalFinalCanvasesCount++;
         }
