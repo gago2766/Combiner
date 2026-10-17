@@ -59,7 +59,7 @@
         .setting-group label { font-weight: 600; font-size: 0.95rem; }
         
         .number-input {
-            width: 100px; padding: 0.35rem 0.5rem; border: 1px solid var(--border-color); 
+            width: 105px; padding: 0.35rem 0.5rem; border: 1px solid var(--border-color); 
             border-radius: 6px; background-color: var(--input-bg); color: var(--text-color); 
             font-size: 0.95rem; text-align: center; font-weight: bold;
         }
@@ -70,6 +70,10 @@
         .slider-wrapper { display: flex; align-items: center; gap: 0.8rem; }
         .setting-group input[type="range"] { flex: 1; margin: 0; cursor: pointer; }
         .range-value { font-weight: bold; color: var(--primary-color); min-width: 65px; text-align: left; }
+
+        .hardware-limit-hint {
+            font-size: 0.8rem; color: #888; margin-top: 2px;
+        }
 
         /* --- Interactive Slider & Carousel Preview --- */
         #preview-section {
@@ -101,11 +105,9 @@
             max-width: 100%; max-height: 75vh; display: flex; justify-content: center; align-items: flex-start; 
             overflow: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border-radius: 4px;
         }
-        /* Fit screen mode */
         .main-canvas-wrapper.fit-mode canvas {
             display: block; max-width: 100%; max-height: 72vh; object-fit: contain; background: #fff;
         }
-        /* Actual size mode: user can see the true pixels expansion */
         .main-canvas-wrapper.actual-mode canvas {
             display: block; width: auto; height: auto; max-width: none; max-height: none; background: #fff;
         }
@@ -228,11 +230,11 @@
                     </select>
                 </div>
 
-                <!-- Custom Width Control: step="1" for 1-pixel precision -->
+                <!-- Custom Width Control -->
                 <div class="setting-group">
                     <div class="setting-header">
                         <label for="uniformWidth">العرض الموحد (بكسل)</label>
-                        <input type="number" id="customWidthInput" class="number-input" min="100" max="10000" step="1" value="750" title="اكتب أي عرض تريده بالبكسل الواحد">
+                        <input type="number" id="customWidthInput" class="number-input" min="100" max="10000" step="1" value="750">
                     </div>
                     <div class="slider-wrapper">
                         <input type="range" id="uniformWidth" min="400" max="2500" value="750" step="1">
@@ -240,16 +242,17 @@
                     </div>
                 </div>
 
-                <!-- Custom Height/Length Control: step="1" for 1-pixel precision -->
+                <!-- Custom Height/Length Control with Hardware Safety Detection -->
                 <div class="setting-group">
                     <div class="setting-header">
                         <label for="maxLength">الطول الأقصى للصورة (بكسل)</label>
-                        <input type="number" id="customLengthInput" class="number-input" min="200" max="80000" step="1" value="10000" title="اكتب أي طول تريده بالبكسل الواحد">
+                        <input type="number" id="customLengthInput" class="number-input" min="500" max="65535" step="1" value="10000">
                     </div>
                     <div class="slider-wrapper">
-                        <input type="range" id="maxLength" min="500" max="35000" value="10000" step="10">
+                        <input type="range" id="maxLength" min="500" max="32000" value="10000" step="10">
                         <span class="range-value" id="maxLengthValue">10000px</span>
                     </div>
+                    <div class="hardware-limit-hint" id="hardwareLimitHint">جاري قياس أقصى طول آمن يدعمه متصفحك...</div>
                 </div>
 
                 <div class="setting-group">
@@ -262,7 +265,7 @@
 
                 <div class="setting-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1.2rem;">
                     <input type="checkbox" id="autoSplit" checked>
-                    <label for="autoSplit" style="cursor:pointer;">تقطيع دقيق عند الوصول للطول الأقصى المكتوب تماماً</label>
+                    <label for="autoSplit" style="cursor:pointer;">تقطيع دقيق كامل دون فقدان أي بكسل عند الوصول للحد</label>
                 </div>
             </div>
 
@@ -271,7 +274,7 @@
                 <div class="preview-header-bar">
                     <h3>معاينة تفاعلية (تقليب يمين/يسار)</h3>
                     <div class="preview-controls-right">
-                        <button type="button" class="zoom-toggle-btn" id="zoomToggleBtn" title="التبديل بين الحجم الكامل والحجم المناسب للشاشة">الحجم الحقيقي: 100%</button>
+                        <button type="button" class="zoom-toggle-btn" id="zoomToggleBtn">الحجم الحقيقي: 100%</button>
                         <div id="previewFolderWrapper" class="hidden" style="display:flex; align-items:center; gap:0.4rem;">
                             <label for="previewFolderSelect" style="font-size:0.85rem; font-weight:bold;">المجلد:</label>
                             <select id="previewFolderSelect" class="folder-select" style="padding:0.25rem 0.6rem; font-size:0.85rem; width:auto;"></select>
@@ -348,6 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxLengthSlider = document.getElementById('maxLength');
     const maxLengthValue = document.getElementById('maxLengthValue');
     const customLengthInput = document.getElementById('customLengthInput');
+    const hardwareLimitHint = document.getElementById('hardwareLimitHint');
 
     const qualitySlider = document.getElementById('quality');
     const qualityValue = document.getElementById('qualityValue');
@@ -379,6 +383,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let previewDebounceTimer = null;
     let isActualZoom = false;
 
+    // --- Dynamic Hardware Canvas Limit Detector ---
+    // Test the browser's GPU/canvas memory ceiling to prevent silent clipping/cropping!
+    function detectMaxCanvasHeight(width = 750) {
+        const testHeights = [65535, 32767, 24000, 16384, 12000, 8192];
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        for (const h of testHeights) {
+            try {
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'red';
+                ctx.fillRect(0, h - 1, 1, 1);
+                const data = ctx.getImageData(0, h - 1, 1, 1).data;
+                if (data[0] === 255) {
+                    canvas.width = 0; canvas.height = 0;
+                    return h;
+                }
+            } catch (e) {
+                // Try lower height
+            }
+        }
+        return 16384; // Standard safe fallback
+    }
+
+    const browserMaxSafeHeight = detectMaxCanvasHeight(750);
+    hardwareLimitHint.textContent = `أقصى طول متواصل يدعمه جهازك دون تلف للصور: ~${browserMaxSafeHeight.toLocaleString()} بكسل`;
+    maxLengthSlider.max = Math.min(browserMaxSafeHeight, 35000);
+
     // --- Utilities ---
     const showAlert = (message, type = 'danger', duration = 4000) => {
         const alertBox = document.getElementById('alert-box');
@@ -409,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? localStorage.getItem('darkMode') === 'true'
         : window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-    // Zoom Toggle (Allows user to inspect large image sizes without CSS constraining them)
+    // Zoom Toggle
     zoomToggleBtn.addEventListener('click', () => {
         isActualZoom = !isActualZoom;
         if (isActualZoom) {
@@ -430,8 +462,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getActiveMaxLength() {
-        const val = parseInt(customLengthInput.value, 10);
-        return isNaN(val) || val <= 0 ? 10000 : val;
+        let val = parseInt(customLengthInput.value, 10);
+        if (isNaN(val) || val <= 0) val = 10000;
+        
+        // Safety guard against hardware overflow which destroys manga pages
+        if (val > browserMaxSafeHeight) {
+            showAlert(`تنبيه: متصفحك يقص أي صورة تتجاوز ${browserMaxSafeHeight}px. تم ضبط الطول على هذا الحد لمنع ضياع الصفحات.`, 'warning', 5000);
+            val = browserMaxSafeHeight;
+            customLengthInput.value = val;
+            maxLengthValue.textContent = `${val}px`;
+        }
+        return val;
     }
 
     // Width inputs
@@ -606,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerLivePreview();
     }
 
-    // --- Pixel-Perfect Slicing Engine (Live Preview) ---
+    // --- Mathematical Exact Slicing Engine (Live Preview) ---
     function triggerLivePreview() {
         if (!previewFolderGroups || !activePreviewFolder || !previewFolderGroups[activePreviewFolder]) return;
         clearTimeout(previewDebounceTimer);
@@ -651,34 +692,35 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillRect(0, 0, targetWidth, maxLength);
         }
 
-        // Exact pixel slicing logic: cuts images precisely across limits
+        // Exact sub-pixel loss prevention: calculates exact source coordinates without missing pixels
         for (let i = 0; i < currentFolderItems.length; i++) {
             const { bmp } = currentFolderItems[i];
-            const scaledHeight = Math.round((targetWidth / bmp.width) * bmp.height);
-            let remainingHeight = scaledHeight;
-            let srcYOffset = 0;
+            const scale = targetWidth / bmp.width;
+            let srcY = 0;
+            let srcHeightRemaining = bmp.height;
 
-            while (remainingHeight > 0) {
+            while (srcHeightRemaining > 0) {
                 ensureWorkingCanvas();
-                const availableSpace = autoSplit ? (maxLength - currentY) : remainingHeight;
+                const availableDestSpace = autoSplit ? (maxLength - currentY) : Infinity;
 
-                if (availableSpace <= 0) {
+                if (availableDestSpace <= 0) {
                     sealSlice();
                     continue;
                 }
 
-                const sliceHeight = Math.min(remainingHeight, availableSpace);
-                const srcSliceHeight = (sliceHeight / scaledHeight) * bmp.height;
+                const maxPossibleDestHeight = srcHeightRemaining * scale;
+                const destHeightToDraw = Math.min(maxPossibleDestHeight, availableDestSpace);
+                const srcHeightToTake = destHeightToDraw / scale;
 
                 ctx.drawImage(
                     bmp,
-                    0, srcYOffset, bmp.width, srcSliceHeight,
-                    0, currentY, targetWidth, sliceHeight
+                    0, srcY, bmp.width, srcHeightToTake,
+                    0, currentY, targetWidth, destHeightToDraw
                 );
 
-                currentY += sliceHeight;
-                remainingHeight -= sliceHeight;
-                srcYOffset += srcSliceHeight;
+                currentY += destHeightToDraw;
+                srcY += srcHeightToTake;
+                srcHeightRemaining -= srcHeightToTake;
 
                 if (autoSplit && currentY >= maxLength) {
                     sealSlice();
@@ -710,13 +752,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const slice = generatedSlices[currentSliceIndex];
         mainCanvasWrapper.appendChild(slice.canvas);
 
-        previewCounter.textContent = `صورة ${currentSliceIndex + 1} من ${generatedSlices.length} (${slice.width}×${slice.height}px)`;
+        previewCounter.textContent = `صورة ${currentSliceIndex + 1} من ${generatedSlices.length} (${slice.width}×${Math.round(slice.height)}px)`;
 
-        // RTL navigation
         prevSliceBtn.disabled = (currentSliceIndex === 0);
         nextSliceBtn.disabled = (currentSliceIndex === generatedSlices.length - 1);
 
-        // Highlight Active Thumbnail
         const thumbs = thumbnailsStrip.querySelectorAll('.thumb-item');
         thumbs.forEach((th, idx) => {
             if (idx === currentSliceIndex) {
@@ -777,7 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Final Compression & Isolated Folder Merging with Pixel-Perfect Precision ---
+    // --- Final Compression & Full Quality Batch Download ---
     startBtn.addEventListener('click', async () => {
         if (!uploadType || rawFiles.length === 0) { showAlert('لم يتم اختيار ملفات!'); return; }
         
@@ -852,11 +892,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function sealCurrentCanvas() {
             if (currentY <= 0) return;
+            const finalHeight = Math.round(currentY);
             const trimmed = document.createElement('canvas');
             trimmed.width = targetWidth;
-            trimmed.height = currentY;
+            trimmed.height = finalHeight;
             trimmed.getContext('2d', { alpha: false }).drawImage(
-                workingCanvas, 0, 0, targetWidth, currentY, 0, 0, targetWidth, currentY
+                workingCanvas, 0, 0, targetWidth, finalHeight, 0, 0, targetWidth, finalHeight
             );
             workingCanvas.width = 0; workingCanvas.height = 0;
             folderCanvases.push(trimmed);
@@ -876,7 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const displayName = folderPath || 'المجلد الرئيسي';
         folderStatus.textContent = `معالجة مجلد: ${displayName} (${currentFolderNum}/${totalFolders})`;
 
-        const PREFETCH = 25;
+        const PREFETCH = 20;
         const DRAW_BATCH = 10;
         const bitmapQueue = new Array(total);
         let prefetchHead = 0;
@@ -899,31 +940,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (let bi = 0; bi < bitmaps.length; bi++) {
                 const bmp = bitmaps[bi];
-                const scaledHeight = Math.round((targetWidth / bmp.width) * bmp.height);
-                let remainingHeight = scaledHeight;
-                let srcYOffset = 0;
+                const scale = targetWidth / bmp.width;
+                let srcY = 0;
+                let srcHeightRemaining = bmp.height;
 
-                while (remainingHeight > 0) {
+                while (srcHeightRemaining > 0) {
                     ensureCanvas();
-                    const availableSpace = autoSplit ? (maxLength - currentY) : remainingHeight;
+                    const availableDestSpace = autoSplit ? (maxLength - currentY) : Infinity;
 
-                    if (availableSpace <= 0) {
+                    if (availableDestSpace <= 0) {
                         sealCurrentCanvas();
                         continue;
                     }
 
-                    const sliceHeight = Math.min(remainingHeight, availableSpace);
-                    const srcSliceHeight = (sliceHeight / scaledHeight) * bmp.height;
+                    const maxPossibleDestHeight = srcHeightRemaining * scale;
+                    const destHeightToDraw = Math.min(maxPossibleDestHeight, availableDestSpace);
+                    const srcHeightToTake = destHeightToDraw / scale;
 
                     ctx.drawImage(
                         bmp,
-                        0, srcYOffset, bmp.width, srcSliceHeight,
-                        0, currentY, targetWidth, sliceHeight
+                        0, srcY, bmp.width, srcHeightToTake,
+                        0, currentY, targetWidth, destHeightToDraw
                     );
 
-                    currentY += sliceHeight;
-                    remainingHeight -= sliceHeight;
-                    srcYOffset += srcSliceHeight;
+                    currentY += destHeightToDraw;
+                    srcY += srcHeightToTake;
+                    srcHeightRemaining -= srcHeightToTake;
 
                     if (autoSplit && currentY >= maxLength) {
                         sealCurrentCanvas();
@@ -955,19 +997,14 @@ document.addEventListener('DOMContentLoaded', () => {
         progressStatus.textContent = `جاري التحويل إلى ${format === 'image/webp' ? 'WebP' : 'JPEG'}...`;
         await yieldToUI();
 
-        const blobResults = await Promise.all(
-            folderCanvases.map((canvas, i) =>
-                new Promise(resolve => canvas.toBlob(blob => {
-                    canvas.width = 0; canvas.height = 0;
-                    resolve({ blob, i });
-                }, format, quality))
-            )
-        );
-
-        blobResults.forEach(({ blob, i }) => {
+        // Convert and push without leaking canvas memory
+        for (let i = 0; i < folderCanvases.length; i++) {
+            const canvas = folderCanvases[i];
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
+            canvas.width = 0; canvas.height = 0; // free memory
             zipFolder.file(`${String(i + 1).padStart(3, '0')}.${fileExt}`, blob, { compression: 'STORE' });
             globalFinalCanvasesCount++;
-        });
+        }
     }
 
     async function downloadMasterZip(finalMasterZip, startTime) {
@@ -995,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="stat-item"><strong>الحجم الأصلي</strong><span>${formatBytes(totalOriginalSize)}</span></div>
             <div class="stat-item" style="border-left-color:var(--warning-color)"><strong>الحجم النهائي</strong><span style="color:var(--warning-color)">${formatBytes(finalZipSize)}</span></div>
             <div class="stat-item" style="grid-column:1/-1"><strong>الوقت المستغرق</strong><span>${timeTaken.toFixed(2)} ثانية</span></div>`;
-        showAlert('تم حفظ كل مجلد بشكل مستقل وبأبعاد دقيقة!', 'success');
+        showAlert('تم حفظ ودمج كافة الصور بأبعادها الحقيقية والكاملة!', 'success');
         resetUI();
     }
 
