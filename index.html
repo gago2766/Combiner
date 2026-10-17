@@ -239,8 +239,8 @@
                 <div class="setting-group">
                     <label for="outputFormat">صيغة الصورة الناتجة</label>
                     <select id="outputFormat">
-                        <option value="image/webp" selected>WebP (حجم صغير وسريع - يوصى به)</option>
-                        <option value="image/jpeg">JPEG (حجم عادي)</option>
+                        <option value="image/webp" selected>WebP (حجم صغير وسريع - أقصى طول عالمي 16,380px)</option>
+                        <option value="image/jpeg">JPEG (حجم عادي - يدعم أطوالاً أكبر)</option>
                     </select>
                 </div>
 
@@ -258,13 +258,13 @@
                 <div class="setting-group">
                     <div class="setting-header">
                         <label for="maxLength">الطول الأقصى للصورة (بكسل)</label>
-                        <input type="number" id="customLengthInput" class="number-input" min="500" max="65535" step="1" value="10000">
+                        <input type="number" id="customLengthInput" class="number-input" min="500" max="32000" step="1" value="10000">
                     </div>
                     <div class="slider-wrapper">
-                        <input type="range" id="maxLength" min="500" max="32000" value="10000" step="10">
+                        <input type="range" id="maxLength" min="500" max="16380" value="10000" step="10">
                         <span class="range-value" id="maxLengthValue">10000px</span>
                     </div>
-                    <div class="hardware-limit-hint" id="hardwareLimitHint">جاري فحص قدرة المتصفح...</div>
+                    <div class="hardware-limit-hint" id="hardwareLimitHint">الحد الأقصى لصيغة WebP هو 16,380 بكسل لمنع تلف الصور.</div>
                 </div>
 
                 <div class="setting-group">
@@ -277,16 +277,16 @@
 
                 <div class="setting-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1.2rem;">
                     <input type="checkbox" id="autoSplit" checked>
-                    <label for="autoSplit" style="cursor:pointer;">تقطيع دقيق كامل دون فقدان أي بكسل عند الوصول للحد</label>
+                    <label for="autoSplit" style="cursor:pointer;">تقطيع تلقائي دقيق يمنع ضياع أو قطع أي بكسل</label>
                 </div>
             </div>
 
-            <!-- Collapsible Preview Section (Hidden by default to prevent freezing) -->
+            <!-- Collapsible Preview Section -->
             <div id="preview-section" class="hidden">
                 <div class="preview-toggle-bar" id="previewToggleBar">
                     <div class="preview-title-wrap">
                         <svg class="toggle-arrow" id="toggleArrow"><use href="#icon-chevron-down"></use></svg>
-                        <h3 id="previewAccordionTitle">عرض ومعاينة الصور المدمجة (انقر للفتح)</h3>
+                        <h3 id="previewAccordionTitle">معاينة الصور قبل التحميل (انقر للفتح)</h3>
                     </div>
                     <span id="previewSummaryTag" style="font-size:0.85rem; opacity:0.8;">معاينة مغلقة (لتوفير الأداء والسرعة)</span>
                 </div>
@@ -337,7 +337,7 @@
             <div id="results-area" class="hidden">
                 <h3><svg class="icon"><use href="#icon-check"></use></svg> اكتملت العملية بنجاح!</h3>
                 <div class="stats-grid"></div>
-                <p style="margin-top: 1.5rem;">تم تجميع كل مجلد بشكل مستقل وحفظه داخل مجلده في ملف ZIP بنجاح.</p>
+                <p style="margin-top: 1.5rem;">تم تجميع كل مجلد بشكل مستقل وحفظه داخل مجلده في ملف ZIP بنجاح دون أي نقص.</p>
             </div>
         </main>
     </div>
@@ -401,34 +401,38 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSliceIndex = 0;
     let previewDebounceTimer = null;
     let isActualZoom = false;
-    let isPreviewExpanded = false; // Closed by default to save browser RAM
+    let isPreviewExpanded = false;
 
-    // --- Dynamic Hardware Canvas Limit Detector ---
-    function detectMaxCanvasHeight(width = 750) {
-        const testHeights = [65535, 32767, 24000, 16384, 12000, 8192];
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        for (const h of testHeights) {
-            try {
-                canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = 'red';
-                ctx.fillRect(0, h - 1, 1, 1);
-                const data = ctx.getImageData(0, h - 1, 1, 1).data;
-                if (data[0] === 255) {
-                    canvas.width = 0; canvas.height = 0;
-                    return h;
-                }
-            } catch (e) {}
-        }
-        return 16384;
+    // --- Format & Hardware Ceiling Protection ---
+    // WebP spec globally cannot exceed 16,383px. JPEG can go higher.
+    const WEBP_HARD_LIMIT = 16380;
+    const JPEG_HARD_LIMIT = 32000;
+
+    function getFormatMaxAllowed() {
+        return outputFormatSelect.value === 'image/webp' ? WEBP_HARD_LIMIT : JPEG_HARD_LIMIT;
     }
 
-    const browserMaxSafeHeight = detectMaxCanvasHeight(750);
-    hardwareLimitHint.textContent = `أقصى طول متواصل يدعمه جهازك دون تلف للصور: ~${browserMaxSafeHeight.toLocaleString()} بكسل`;
-    maxLengthSlider.max = Math.min(browserMaxSafeHeight, 35000);
+    function updateFormatConstraints() {
+        const maxLimit = getFormatMaxAllowed();
+        maxLengthSlider.max = maxLimit;
+        customLengthInput.max = maxLimit;
 
-    // --- Accordion Toggle Mechanism (Freezes/Unfreezes rendering) ---
+        if (outputFormatSelect.value === 'image/webp') {
+            hardwareLimitHint.textContent = `الحد الأقصى العالمي لصيغة WebP هو 16,380px لمنع قطع الصور. (اختر JPEG إذا أردت أطول من ذلك)`;
+            if (parseInt(customLengthInput.value, 10) > WEBP_HARD_LIMIT) {
+                customLengthInput.value = WEBP_HARD_LIMIT;
+                maxLengthSlider.value = WEBP_HARD_LIMIT;
+                maxLengthValue.textContent = `${WEBP_HARD_LIMIT}px`;
+            }
+        } else {
+            hardwareLimitHint.textContent = `صيغة JPEG تسمح بأطوال تصل إلى 32,000px.`;
+        }
+        if (isPreviewExpanded) triggerLivePreview();
+    }
+
+    outputFormatSelect.addEventListener('change', updateFormatConstraints);
+
+    // Accordion Toggle Mechanism
     previewToggleBar.addEventListener('click', () => {
         isPreviewExpanded = !isPreviewExpanded;
         previewSection.classList.toggle('expanded', isPreviewExpanded);
@@ -438,9 +442,8 @@ document.addEventListener('DOMContentLoaded', () => {
             previewSummaryTag.textContent = 'المعاينة نشطة الآن';
             triggerLivePreview();
         } else {
-            previewAccordionTitle.textContent = 'عرض ومعاينة الصور المدمجة (انقر للفتح)';
+            previewAccordionTitle.textContent = 'معاينة الصور قبل التحميل (انقر للفتح)';
             previewSummaryTag.textContent = 'تم إخفاء المعاينة لتسريع المتصفح';
-            // Clear generated preview canvases from RAM immediately
             generatedSlices.forEach(s => { s.canvas.width = 0; s.canvas.height = 0; });
             generatedSlices = [];
             mainCanvasWrapper.innerHTML = '';
@@ -448,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const showAlert = (message, type = 'danger', duration = 4000) => {
+    const showAlert = (message, type = 'danger', duration = 4500) => {
         const alertBox = document.getElementById('alert-box');
         const alertMessage = document.getElementById('alert-message');
         alertBox.className = 'alert-box';
@@ -499,10 +502,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function getActiveMaxLength() {
         let val = parseInt(customLengthInput.value, 10);
         if (isNaN(val) || val <= 0) val = 10000;
-        if (val > browserMaxSafeHeight) {
-            showAlert(`تنبيه: متصفحك يقص أي صورة تتجاوز ${browserMaxSafeHeight}px. تم ضبط الطول على هذا الحد تلقائياً.`, 'warning', 5000);
-            val = browserMaxSafeHeight;
+        const maxLimit = getFormatMaxAllowed();
+
+        if (val > maxLimit) {
+            showAlert(`تنبيه: تم ضبط الطول على ${maxLimit}px كحد أقصى لمنع تلف وقص الصور.`, 'warning');
+            val = maxLimit;
             customLengthInput.value = val;
+            maxLengthSlider.value = val;
             maxLengthValue.textContent = `${val}px`;
         }
         return val;
@@ -538,9 +544,11 @@ document.addEventListener('DOMContentLoaded', () => {
     customLengthInput.addEventListener('input', () => {
         const val = parseInt(customLengthInput.value, 10);
         if (!isNaN(val) && val > 0) {
-            maxLengthValue.textContent = `${val}px`;
-            if (val >= parseInt(maxLengthSlider.min) && val <= parseInt(maxLengthSlider.max)) {
-                maxLengthSlider.value = val;
+            const maxLimit = getFormatMaxAllowed();
+            const safeVal = Math.min(val, maxLimit);
+            maxLengthValue.textContent = `${safeVal}px`;
+            if (safeVal >= parseInt(maxLengthSlider.min) && safeVal <= parseInt(maxLengthSlider.max)) {
+                maxLengthSlider.value = safeVal;
             }
             if (isPreviewExpanded) triggerLivePreview();
         }
@@ -599,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actionSection.classList.remove('hidden');
         resultsArea.classList.add('hidden');
         processingArea.classList.add('hidden');
+        updateFormatConstraints();
     }
 
     function resetState() {
@@ -681,9 +690,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isPreviewExpanded) triggerLivePreview();
     }
 
-    // --- Mathematical Exact Slicing Engine (Live Preview) ---
+    // --- Mathematical Exact Slicing Engine (Guarantees zero lost panels) ---
     function triggerLivePreview() {
-        if (!isPreviewExpanded) return; // Prevent freezing when closed
+        if (!isPreviewExpanded) return;
         if (!previewFolderGroups || !activePreviewFolder || !previewFolderGroups[activePreviewFolder]) return;
         clearTimeout(previewDebounceTimer);
         previewDebounceTimer = setTimeout(recalculateSlicesAndRender, 60);
@@ -704,15 +713,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function sealSlice() {
             if (currentY <= 0) return;
+            const finalHeight = Math.round(currentY);
             const trimmed = document.createElement('canvas');
             trimmed.width = targetWidth;
-            trimmed.height = currentY;
-            trimmed.getContext('2d').drawImage(workingCanvas, 0, 0, targetWidth, currentY, 0, 0, targetWidth, currentY);
+            trimmed.height = finalHeight;
+            trimmed.getContext('2d').drawImage(workingCanvas, 0, 0, targetWidth, finalHeight, 0, 0, targetWidth, finalHeight);
             
             generatedSlices.push({
                 canvas: trimmed,
                 width: targetWidth,
-                height: currentY
+                height: finalHeight
             });
             workingCanvas.width = 0; workingCanvas.height = 0;
             workingCanvas = null; ctx = null; currentY = 0;
@@ -787,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const slice = generatedSlices[currentSliceIndex];
         mainCanvasWrapper.appendChild(slice.canvas);
 
-        previewCounter.textContent = `صورة ${currentSliceIndex + 1} من ${generatedSlices.length} (${slice.width}×${Math.round(slice.height)}px)`;
+        previewCounter.textContent = `صورة ${currentSliceIndex + 1} من ${generatedSlices.length} (${slice.width}×${slice.height}px)`;
 
         prevSliceBtn.disabled = (currentSliceIndex === 0);
         nextSliceBtn.disabled = (currentSliceIndex === generatedSlices.length - 1);
