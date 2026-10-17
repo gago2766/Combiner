@@ -59,7 +59,7 @@
         .setting-group label { font-weight: 600; font-size: 0.95rem; }
         
         .number-input {
-            width: 95px; padding: 0.35rem 0.5rem; border: 1px solid var(--border-color); 
+            width: 100px; padding: 0.35rem 0.5rem; border: 1px solid var(--border-color); 
             border-radius: 6px; background-color: var(--input-bg); color: var(--text-color); 
             font-size: 0.95rem; text-align: center; font-weight: bold;
         }
@@ -69,7 +69,7 @@
         }
         .slider-wrapper { display: flex; align-items: center; gap: 0.8rem; }
         .setting-group input[type="range"] { flex: 1; margin: 0; cursor: pointer; }
-        .range-value { font-weight: bold; color: var(--primary-color); min-width: 55px; text-align: left; }
+        .range-value { font-weight: bold; color: var(--primary-color); min-width: 65px; text-align: left; }
 
         /* --- Interactive Slider & Carousel Preview --- */
         #preview-section {
@@ -80,23 +80,34 @@
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;
         }
         .preview-header-bar h3 { margin: 0; font-size: 1.2rem; color: var(--text-color); }
-        .preview-controls-right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+        .preview-controls-right { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
         .preview-counter {
             font-size: 0.95rem; font-weight: bold; background: var(--primary-color); color: #fff; 
             padding: 4px 12px; border-radius: 20px; white-space: nowrap;
         }
         
+        .zoom-toggle-btn {
+            background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color);
+            padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600;
+        }
+        .zoom-toggle-btn:hover { border-color: var(--primary-color); }
+
         .viewer-container {
             position: relative; background-color: var(--preview-bg); border-radius: 10px; 
             display: flex; justify-content: center; align-items: center; min-height: 480px; 
             padding: 1rem; overflow: hidden;
         }
         .main-canvas-wrapper {
-            max-width: 100%; max-height: 70vh; display: flex; justify-content: center; align-items: center; 
+            max-width: 100%; max-height: 75vh; display: flex; justify-content: center; align-items: flex-start; 
             overflow: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border-radius: 4px;
         }
-        .main-canvas-wrapper canvas {
-            display: block; max-width: 100%; max-height: 68vh; object-fit: contain; background: #fff;
+        /* Fit screen mode */
+        .main-canvas-wrapper.fit-mode canvas {
+            display: block; max-width: 100%; max-height: 72vh; object-fit: contain; background: #fff;
+        }
+        /* Actual size mode: user can see the true pixels expansion */
+        .main-canvas-wrapper.actual-mode canvas {
+            display: block; width: auto; height: auto; max-width: none; max-height: none; background: #fff;
         }
         
         /* Navigation Arrows */
@@ -217,26 +228,26 @@
                     </select>
                 </div>
 
-                <!-- Custom Width Control -->
+                <!-- Custom Width Control: step="1" for 1-pixel precision -->
                 <div class="setting-group">
                     <div class="setting-header">
                         <label for="uniformWidth">العرض الموحد (بكسل)</label>
-                        <input type="number" id="customWidthInput" class="number-input" min="200" max="8000" value="750" title="اكتب العرض يدوياً">
+                        <input type="number" id="customWidthInput" class="number-input" min="100" max="10000" step="1" value="750" title="اكتب أي عرض تريده بالبكسل الواحد">
                     </div>
                     <div class="slider-wrapper">
-                        <input type="range" id="uniformWidth" min="400" max="2000" value="750" step="10">
+                        <input type="range" id="uniformWidth" min="400" max="2500" value="750" step="1">
                         <span class="range-value" id="uniformWidthValue">750px</span>
                     </div>
                 </div>
 
-                <!-- Custom Height/Length Control -->
+                <!-- Custom Height/Length Control: step="1" for 1-pixel precision -->
                 <div class="setting-group">
                     <div class="setting-header">
                         <label for="maxLength">الطول الأقصى للصورة (بكسل)</label>
-                        <input type="number" id="customLengthInput" class="number-input" min="500" max="60000" step="500" value="10000" title="اكتب الطول يدوياً">
+                        <input type="number" id="customLengthInput" class="number-input" min="200" max="80000" step="1" value="10000" title="اكتب أي طول تريده بالبكسل الواحد">
                     </div>
                     <div class="slider-wrapper">
-                        <input type="range" id="maxLength" min="1000" max="30000" value="10000" step="1000">
+                        <input type="range" id="maxLength" min="500" max="35000" value="10000" step="10">
                         <span class="range-value" id="maxLengthValue">10000px</span>
                     </div>
                 </div>
@@ -251,7 +262,7 @@
 
                 <div class="setting-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 1.2rem;">
                     <input type="checkbox" id="autoSplit" checked>
-                    <label for="autoSplit" style="cursor:pointer;">تقطيع الصور الطويلة تلقائيًا حسب الطول الأقصى</label>
+                    <label for="autoSplit" style="cursor:pointer;">تقطيع دقيق عند الوصول للطول الأقصى المكتوب تماماً</label>
                 </div>
             </div>
 
@@ -260,7 +271,7 @@
                 <div class="preview-header-bar">
                     <h3>معاينة تفاعلية (تقليب يمين/يسار)</h3>
                     <div class="preview-controls-right">
-                        <!-- Folder Switcher for Preview -->
+                        <button type="button" class="zoom-toggle-btn" id="zoomToggleBtn" title="التبديل بين الحجم الكامل والحجم المناسب للشاشة">الحجم الحقيقي: 100%</button>
                         <div id="previewFolderWrapper" class="hidden" style="display:flex; align-items:center; gap:0.4rem;">
                             <label for="previewFolderSelect" style="font-size:0.85rem; font-weight:bold;">المجلد:</label>
                             <select id="previewFolderSelect" class="folder-select" style="padding:0.25rem 0.6rem; font-size:0.85rem; width:auto;"></select>
@@ -275,7 +286,7 @@
                         <svg><use href="#icon-arrow-right"></use></svg>
                     </button>
                     
-                    <div class="main-canvas-wrapper" id="mainCanvasWrapper">
+                    <div class="main-canvas-wrapper fit-mode" id="mainCanvasWrapper">
                         <!-- Currently active slice canvas is injected here -->
                     </div>
 
@@ -285,7 +296,7 @@
                     </button>
                 </div>
 
-                <!-- Thumbnails strip for jumping to any slice -->
+                <!-- Thumbnails strip -->
                 <div class="thumbnails-strip" id="thumbnailsStrip"></div>
             </div>
 
@@ -351,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextSliceBtn = document.getElementById('nextSliceBtn');
     const previewFolderWrapper = document.getElementById('previewFolderWrapper');
     const previewFolderSelect = document.getElementById('previewFolderSelect');
+    const zoomToggleBtn = document.getElementById('zoomToggleBtn');
 
     let uploadType = null;
     let rawFiles = [];
@@ -360,12 +372,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let globalProcessedImages = 0;
     let globalFinalCanvasesCount = 0;
 
-    // Folder groups dictionary: { folderName: [ { name, bmp } ] }
     let previewFolderGroups = {};
     let activePreviewFolder = null;
     let generatedSlices = []; 
     let currentSliceIndex = 0;
     let previewDebounceTimer = null;
+    let isActualZoom = false;
 
     // --- Utilities ---
     const showAlert = (message, type = 'danger', duration = 4000) => {
@@ -397,6 +409,20 @@ document.addEventListener('DOMContentLoaded', () => {
         ? localStorage.getItem('darkMode') === 'true'
         : window.matchMedia('(prefers-color-scheme: dark)').matches);
 
+    // Zoom Toggle (Allows user to inspect large image sizes without CSS constraining them)
+    zoomToggleBtn.addEventListener('click', () => {
+        isActualZoom = !isActualZoom;
+        if (isActualZoom) {
+            mainCanvasWrapper.classList.remove('fit-mode');
+            mainCanvasWrapper.classList.add('actual-mode');
+            zoomToggleBtn.textContent = 'ملاءمة الشاشة';
+        } else {
+            mainCanvasWrapper.classList.remove('actual-mode');
+            mainCanvasWrapper.classList.add('fit-mode');
+            zoomToggleBtn.textContent = 'الحجم الحقيقي: 100%';
+        }
+    });
+
     // --- Dimension Sync & Independent Controls ---
     function getActiveWidth() {
         const val = parseInt(customWidthInput.value, 10);
@@ -427,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Length inputs
+    // Length inputs (Pixel-perfect)
     maxLengthSlider.addEventListener('input', (e) => {
         const val = e.target.value;
         customLengthInput.value = val;
@@ -505,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
         previewSection.classList.add('hidden'); actionSection.classList.add('hidden');
     }
 
-    // --- Load Bitmaps into Isolated Folder Groups ---
+    // --- Loading Bitmaps into Isolated Groups ---
     async function loadBitmapsFromImages(files) {
         previewCounter.textContent = 'جاري قراءة الصور...';
         const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
@@ -580,11 +606,11 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerLivePreview();
     }
 
-    // --- Interactive Live Slicing for Active Folder ---
+    // --- Pixel-Perfect Slicing Engine (Live Preview) ---
     function triggerLivePreview() {
         if (!previewFolderGroups || !activePreviewFolder || !previewFolderGroups[activePreviewFolder]) return;
         clearTimeout(previewDebounceTimer);
-        previewDebounceTimer = setTimeout(recalculateSlicesAndRender, 100);
+        previewDebounceTimer = setTimeout(recalculateSlicesAndRender, 60);
     }
 
     function recalculateSlicesAndRender() {
@@ -599,6 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentY = 0;
 
         function sealSlice() {
+            if (currentY <= 0) return;
             const trimmed = document.createElement('canvas');
             trimmed.width = targetWidth;
             trimmed.height = currentY;
@@ -624,18 +651,39 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillRect(0, 0, targetWidth, maxLength);
         }
 
-        // Loop only through items of the CURRENT ACTIVE FOLDER
+        // Exact pixel slicing logic: cuts images precisely across limits
         for (let i = 0; i < currentFolderItems.length; i++) {
             const { bmp } = currentFolderItems[i];
-            const newHeight = Math.round(targetWidth * bmp.height / bmp.width);
+            const scaledHeight = Math.round((targetWidth / bmp.width) * bmp.height);
+            let remainingHeight = scaledHeight;
+            let srcYOffset = 0;
 
-            if (autoSplit && currentY > 0 && (currentY + newHeight) > maxLength) {
-                sealSlice();
+            while (remainingHeight > 0) {
+                ensureWorkingCanvas();
+                const availableSpace = autoSplit ? (maxLength - currentY) : remainingHeight;
+
+                if (availableSpace <= 0) {
+                    sealSlice();
+                    continue;
+                }
+
+                const sliceHeight = Math.min(remainingHeight, availableSpace);
+                const srcSliceHeight = (sliceHeight / scaledHeight) * bmp.height;
+
+                ctx.drawImage(
+                    bmp,
+                    0, srcYOffset, bmp.width, srcSliceHeight,
+                    0, currentY, targetWidth, sliceHeight
+                );
+
+                currentY += sliceHeight;
+                remainingHeight -= sliceHeight;
+                srcYOffset += srcSliceHeight;
+
+                if (autoSplit && currentY >= maxLength) {
+                    sealSlice();
+                }
             }
-
-            ensureWorkingCanvas();
-            ctx.drawImage(bmp, 0, 0, bmp.width, bmp.height, 0, currentY, targetWidth, newHeight);
-            currentY += newHeight;
         }
 
         if (workingCanvas && currentY > 0) {
@@ -729,7 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Final Compression & Isolated Folder Merging ---
+    // --- Final Compression & Isolated Folder Merging with Pixel-Perfect Precision ---
     startBtn.addEventListener('click', async () => {
         if (!uploadType || rawFiles.length === 0) { showAlert('لم يتم اختيار ملفات!'); return; }
         
@@ -759,7 +807,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!zipEntry.dir && /\.(jpe?g|png|webp)$/i.test(zipEntry.name)) {
                         totalOriginalSize += zipEntry._data.uncompressedSize;
                         const lastSlash = relativePath.lastIndexOf('/');
-                        // Preserve exact relative folder path
                         const folder = lastSlash !== -1 ? relativePath.substring(0, lastSlash) : '';
                         if (!folderGroups[folder]) folderGroups[folder] = [];
                         folderGroups[folder].push({ name: zipEntry.name, getBlob: () => zipEntry.async('blob') });
@@ -791,7 +838,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function processSingleFolder(folderPath, imageItems, finalMasterZip, startTime, currentFolderNum, totalFolders) {
-        // Create isolated folder inside ZIP (or write to root if no subfolder)
         const zipFolder = folderPath ? finalMasterZip.folder(folderPath) : finalMasterZip;
         const targetWidth = getActiveWidth();
         const maxLength = getActiveMaxLength();
@@ -805,6 +851,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const folderCanvases = [];
 
         function sealCurrentCanvas() {
+            if (currentY <= 0) return;
             const trimmed = document.createElement('canvas');
             trimmed.width = targetWidth;
             trimmed.height = currentY;
@@ -827,10 +874,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const displayName = folderPath || 'المجلد الرئيسي';
-        folderStatus.textContent = `معالجة مجلد منفصل: ${displayName} (${currentFolderNum}/${totalFolders})`;
+        folderStatus.textContent = `معالجة مجلد: ${displayName} (${currentFolderNum}/${totalFolders})`;
 
-        const PREFETCH = 30;
-        const DRAW_BATCH = 15;
+        const PREFETCH = 25;
+        const DRAW_BATCH = 10;
         const bitmapQueue = new Array(total);
         let prefetchHead = 0;
         let drawHead = 0;
@@ -852,14 +899,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (let bi = 0; bi < bitmaps.length; bi++) {
                 const bmp = bitmaps[bi];
-                const newHeight = Math.round(targetWidth * bmp.height / bmp.width);
+                const scaledHeight = Math.round((targetWidth / bmp.width) * bmp.height);
+                let remainingHeight = scaledHeight;
+                let srcYOffset = 0;
 
-                if (autoSplit && currentY > 0 && currentY + newHeight > maxLength) {
-                    sealCurrentCanvas();
+                while (remainingHeight > 0) {
+                    ensureCanvas();
+                    const availableSpace = autoSplit ? (maxLength - currentY) : remainingHeight;
+
+                    if (availableSpace <= 0) {
+                        sealCurrentCanvas();
+                        continue;
+                    }
+
+                    const sliceHeight = Math.min(remainingHeight, availableSpace);
+                    const srcSliceHeight = (sliceHeight / scaledHeight) * bmp.height;
+
+                    ctx.drawImage(
+                        bmp,
+                        0, srcYOffset, bmp.width, srcSliceHeight,
+                        0, currentY, targetWidth, sliceHeight
+                    );
+
+                    currentY += sliceHeight;
+                    remainingHeight -= sliceHeight;
+                    srcYOffset += srcSliceHeight;
+
+                    if (autoSplit && currentY >= maxLength) {
+                        sealCurrentCanvas();
+                    }
                 }
-                ensureCanvas();
-                ctx.drawImage(bmp, 0, 0, bmp.width, bmp.height, 0, currentY, targetWidth, newHeight);
-                currentY += newHeight;
+
                 bmp.close();
                 bitmapQueue[drawHead + bi] = null;
             }
@@ -879,7 +949,6 @@ document.addEventListener('DOMContentLoaded', () => {
             await yieldToUI();
         }
 
-        // Seal remaining canvas for THIS folder strictly
         if (workingCanvas && currentY > 0) sealCurrentCanvas();
 
         folderStatus.textContent = `ضغط صور مجلد: ${displayName}...`;
@@ -926,7 +995,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="stat-item"><strong>الحجم الأصلي</strong><span>${formatBytes(totalOriginalSize)}</span></div>
             <div class="stat-item" style="border-left-color:var(--warning-color)"><strong>الحجم النهائي</strong><span style="color:var(--warning-color)">${formatBytes(finalZipSize)}</span></div>
             <div class="stat-item" style="grid-column:1/-1"><strong>الوقت المستغرق</strong><span>${timeTaken.toFixed(2)} ثانية</span></div>`;
-        showAlert('تم حفظ كل مجلد بشكل مستقل وبنجاح!', 'success');
+        showAlert('تم حفظ كل مجلد بشكل مستقل وبأبعاد دقيقة!', 'success');
         resetUI();
     }
 
